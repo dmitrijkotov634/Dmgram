@@ -1,62 +1,33 @@
 {
   "project_info": {
-    "project_number": "623201074729",
-    "project_id": "telegram-fa1ea",
-    "storage_bucket": "telegram-fa1ea.appspot.com"
+    "project_number": "262296439479",
+    "project_id": "dmgram-e5d97",
+    "storage_bucket": "dmgram-e5d97.appspot.com"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:623201074729:android:dc2f91c9acab1e703f2638",
+        "mobilesdk_app_id": "1:262296439479:android:b10fc078826bb8cfb7db32",
         "android_client_info": {
-          "package_name": "org.telegram.messenger"
+          "package_name": "org.dmgram.messenger"
         }
       },
       "oauth_client": [
         {
-          "client_id": "623201074729-clcet5fi8jlna0l4iqiq084idd2tpje7.apps.googleusercontent.com",
+          "client_id": "262296439479-dto1av9794nf6uduuqiem38t42d1j78r.apps.googleusercontent.com",
           "client_type": 3
         }
       ],
       "api_key": [
         {
-          "current_key": "AIzaSyB-cy7m3dClbTIIWvzXozoG3rF8xqgTCgE"
+          "current_key": "AIzaSyDjaDaJntDp0RSbELY_lbyjUISnkl7p0E8"
         }
       ],
       "services": {
         "appinvite_service": {
           "other_platform_oauth_client": [
             {
-              "client_id": "623201074729-clcet5fi8jlna0l4iqiq084idd2tpje7.apps.googleusercontent.com",
-              "client_type": 3
-            }
-          ]
-        }
-      }
-    },
-    {
-      "client_info": {
-        "mobilesdk_app_id": "1:623201074729:android:eca68fb58dacec873f2638",
-        "android_client_info": {
-          "package_name": "org.telegram.messenger.beta"
-        }
-      },
-      "oauth_client": [
-        {
-          "client_id": "623201074729-clcet5fi8jlna0l4iqiq084idd2tpje7.apps.googleusercontent.com",
-          "client_type": 3
-        }
-      ],
-      "api_key": [
-        {
-          "current_key": "AIzaSyB-cy7m3dClbTIIWvzXozoG3rF8xqgTCgE"
-        }
-      ],
-      "services": {
-        "appinvite_service": {
-          "other_platform_oauth_client": [
-            {
-              "client_id": "623201074729-clcet5fi8jlna0l4iqiq084idd2tpje7.apps.googleusercontent.com",
+              "client_id": "262296439479-dto1av9794nf6uduuqiem38t42d1j78r.apps.googleusercontent.com",
               "client_type": 3
             }
           ]

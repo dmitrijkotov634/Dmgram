@@ -2,5 +2,7 @@
 .gradle/
 build/
 obj/
+.cxx/
 *.iml
 local.properties
+keystore.properties
