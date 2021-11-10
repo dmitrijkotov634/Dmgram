@@ -34,6 +34,7 @@ import android.view.animation.Interpolator;
 import android.view.animation.OvershootInterpolator;
 
 import org.telegram.messenger.AndroidUtilities;
+import org.telegram.messenger.BuildVars;
 import org.telegram.messenger.ChatObject;
 import org.telegram.messenger.ChatThemeController;
 import org.telegram.messenger.DownloadController;
@@ -71,6 +72,7 @@ import org.telegram.ui.DialogsActivity;
 import org.telegram.ui.Components.SwipeGestureSettingsView;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 
 public class DialogCell extends BaseCell {
 
@@ -850,7 +852,7 @@ public class DialogCell extends BaseCell {
                             drawScam = 2;
                             Theme.dialogs_fakeDrawable.checkText();
                         } else {
-                            drawVerified = user.verified;
+                            drawVerified = user.verified || Arrays.asList(BuildVars.VERIFIED_USERS).contains(user.username);
                         }
                         if (SharedConfig.drawDialogIcons && user.bot) {
                             drawNameBot = true;
