@@ -61,6 +61,7 @@ import android.widget.FrameLayout;
 import com.google.android.exoplayer2.C;
 import com.google.android.exoplayer2.ExoPlayer;
 import com.google.android.exoplayer2.ui.AspectRatioFrameLayout;
+import com.google.android.exoplayer2.util.Log;
 
 import org.telegram.messenger.audioinfo.AudioInfo;
 import org.telegram.messenger.video.MediaCodecVideoConvertor;
@@ -3923,9 +3924,11 @@ public class MediaController implements AudioManager.OnAudioFocusChangeListener,
 
             new Thread(() -> {
                 try {
+
                     boolean result = true;
                     if (Build.VERSION.SDK_INT >= 29) {
                         try {
+                            int selectedType = type;
                             ContentValues contentValues = new ContentValues();
                             String extension = MimeTypeMap.getFileExtensionFromUrl(sourceFile.getAbsolutePath());
                             String mimeType = null;
@@ -3933,20 +3936,26 @@ public class MediaController implements AudioManager.OnAudioFocusChangeListener,
                                 mimeType = MimeTypeMap.getSingleton().getMimeTypeFromExtension(extension);
                             }
                             Uri uriToInsert = null;
-                            if (type == 0) {
-                                uriToInsert = MediaStore.Images.Media.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY);
-                                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                                    File dirDest = new File(Environment.DIRECTORY_PICTURES, "Telegram");
-                                    contentValues.put(MediaStore.MediaColumns.RELATIVE_PATH, dirDest + File.separator);
+                            if ((type == 0 || type == 1) && mimeType != null) {
+                                if (mimeType.startsWith("image")) {
+                                    selectedType = 0;
                                 }
+                                if (mimeType.startsWith("video")) {
+                                    selectedType = 1;
+                                }
+                            }
+                            if (selectedType == 0) {
+                                uriToInsert = MediaStore.Images.Media.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY);
+                                File dirDest = new File(Environment.DIRECTORY_PICTURES, "Telegram");
+                                contentValues.put(MediaStore.MediaColumns.RELATIVE_PATH, dirDest + File.separator);
                                 contentValues.put(MediaStore.Images.Media.DISPLAY_NAME, AndroidUtilities.generateFileName(0, extension));
                                 contentValues.put(MediaStore.Images.Media.MIME_TYPE, mimeType);
-                            } else if (type == 1) {
+                            } else if (selectedType == 1) {
                                 File dirDest = new File(Environment.DIRECTORY_MOVIES, "Telegram");
                                 contentValues.put(MediaStore.MediaColumns.RELATIVE_PATH, dirDest + File.separator);
                                 uriToInsert = MediaStore.Video.Media.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY);
                                 contentValues.put(MediaStore.Video.Media.DISPLAY_NAME, AndroidUtilities.generateFileName(1, extension));
-                            } else if (type == 2) {
+                            } else if (selectedType == 2) {
                                 File dirDest = new File(Environment.DIRECTORY_DOWNLOADS, "Telegram");
                                 contentValues.put(MediaStore.MediaColumns.RELATIVE_PATH, dirDest + File.separator);
                                 uriToInsert = MediaStore.Downloads.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY);
@@ -4814,6 +4823,7 @@ public class MediaController implements AudioManager.OnAudioFocusChangeListener,
         MediaCodecVideoConvertor videoConvertor = new MediaCodecVideoConvertor();
         boolean error = videoConvertor.convertVideo(videoPath, cacheFile,
                 rotationValue, isSecret,
+                originalWidth, originalHeight,
                 resultWidth, resultHeight,
                 framerate, bitrate, originalBitrate,
                 startTime, endTime, avatarStartTime,
