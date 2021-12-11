@@ -1918,15 +1918,6 @@ public class ChatActivity extends BaseFragment implements NotificationCenter.Not
             MediaController.getInstance().stopMediaObserver();
         }
 
-        if (getOtherSameChatsDiff() == 0) {
-            try {
-                if (Build.VERSION.SDK_INT >= 23) {
-                    AndroidUtilities.setFlagSecure(this, false);
-                }
-            } catch (Throwable e) {
-                FileLog.e(e);
-            }
-        }
         if (currentUser != null) {
             getMessagesController().cancelLoadFullUser(currentUser.id);
         }
@@ -7866,14 +7857,6 @@ public class ChatActivity extends BaseFragment implements NotificationCenter.Not
         chatScrollHelper.setScrollListener(this::invalidateMessagesVisiblePart);
         chatScrollHelper.setAnimationCallback(chatScrollHelperCallback);
 
-        try {
-            if (currentEncryptedChat != null && Build.VERSION.SDK_INT >= 23 && (SharedConfig.passcodeHash.length() == 0 || SharedConfig.allowScreenCapture) ||
-                    getMessagesController().isChatNoForwards(currentChat) && getOtherSameChatsDiff() >= 0) {
-                AndroidUtilities.setFlagSecure(this, true);
-            }
-        } catch (Throwable e) {
-            FileLog.e(e);
-        }
         if (oldMessage != null) {
             chatActivityEnterView.setFieldText(oldMessage);
         }
@@ -14379,20 +14362,6 @@ public class ChatActivity extends BaseFragment implements NotificationCenter.Not
                 updateBottomOverlay();
                 if (chatActivityEnterView != null) {
                     chatActivityEnterView.setDialogId(dialog_id, currentAccount);
-                }
-
-                if (fwdChanged) {
-                    try {
-                        if (Build.VERSION.SDK_INT >= 23) {
-                            if (currentEncryptedChat != null && SharedConfig.passcodeHash.length() == 0) {
-                                AndroidUtilities.setFlagSecure(this, true);
-                            } else if (getOtherSameChatsDiff() >= 0) {
-                                AndroidUtilities.setFlagSecure(this, (getMessagesController().isChatNoForwards(currentChat)));
-                            }
-                        }
-                    } catch (Throwable e) {
-                        FileLog.e(e);
-                    }
                 }
             }
             if (avatarContainer != null && updateSubtitle) {
