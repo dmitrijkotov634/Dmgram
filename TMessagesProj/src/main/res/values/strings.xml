@@ -1022,7 +1022,6 @@
     <string name="DeleteReportSpam">Report spam</string>
     <string name="TranslateMessage">Translate</string>
     <string name="AutomaticTranslation">Automatic Translation</string>
-    <string name="TranslateMore">Translate more...</string>
     <string name="CloseTranslation">Close Translation</string>
     <string name="TranslationFailedAlert1">Translation failed. Try again later.</string>
     <string name="TranslationFailedAlert2">Translation failed.</string>
@@ -4938,7 +4937,6 @@
     <string name="DoubleTapPreviewSenderName">Dino</string>
     <string name="DoubleTapSetting">Quick Reactions</string>
     <string name="DoubleTapPreviewRational">Double tap this message for a quck reaction.</string>
-    <string name="DebugDrawSnowInChat">Snow in chat</string>
     <string name="ActionReactionsChanged">un1 changed chat reactions \nfrom: %1$s \nto: %2$s</string>
     <string name="NobodyViewed">Nobody viewed</string>
     <string name="QrCode">QR Code</string>

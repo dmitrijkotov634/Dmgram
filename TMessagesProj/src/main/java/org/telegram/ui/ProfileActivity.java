@@ -14,7 +14,6 @@ import android.animation.AnimatorListenerAdapter;
 import android.animation.AnimatorSet;
 import android.animation.ObjectAnimator;
 import android.animation.ValueAnimator;
-import android.app.Activity;
 import android.app.Dialog;
 import android.content.Context;
 import android.content.DialogInterface;
@@ -113,7 +112,6 @@ import org.telegram.tgnet.SerializedData;
 import org.telegram.tgnet.TLObject;
 import org.telegram.tgnet.TLRPC;
 import org.telegram.ui.ActionBar.ActionBar;
-import org.telegram.ui.ActionBar.ActionBarLayout;
 import org.telegram.ui.ActionBar.ActionBarMenu;
 import org.telegram.ui.ActionBar.ActionBarMenuItem;
 import org.telegram.ui.ActionBar.AlertDialog;
@@ -1131,7 +1129,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                 public void onAnimationEnd(Animator animation) {
                     if (isIndicatorVisible) {
                         if (searchItem != null) {
-                            searchItem.setVisibility(GONE);
+                            searchItem.setClickable(false);
                         }
                         if (editItemVisible) {
                             editItem.setVisibility(GONE);
@@ -1150,7 +1148,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                 @Override
                 public void onAnimationStart(Animator animation) {
                     if (searchItem != null && !expanded) {
-                        searchItem.setVisibility(VISIBLE);
+                        searchItem.setClickable(true);
                     }
                     if (editItemVisible) {
                         editItem.setVisibility(VISIBLE);
@@ -2729,7 +2727,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                                 Build.VERSION.SDK_INT >= 21 ? (SharedConfig.noStatusBar ? "Show status bar background" : "Hide status bar background") : null,
                                 BuildVars.DEBUG_PRIVATE_VERSION ? "Clean app update" : null,
                                 BuildVars.DEBUG_PRIVATE_VERSION ? "Reset suggestions" : null,
-                                SharedConfig.drawSnowInChat ? "Hide snow in chat" : "Show snow in chat"
+                                SharedConfig.canBlurChat() ? (SharedConfig.chatBlur ? "Disable blur in chat" : "Enable blur in chat") : null
                         };
                         builder.setItems(items, (dialog, which) -> {
                             if (which == 0) {
@@ -2801,7 +2799,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                                 suggestions.add("VALIDATE_PASSWORD");
                                 getNotificationCenter().postNotificationName(NotificationCenter.newSuggestionsAvailable);
                             }  else if (which == 17) {
-                                SharedConfig.toggleDrawSnowInChat();
+                                SharedConfig.toggleDebugChatBlur();
                             }
                         });
                         builder.setNegativeButton(LocaleController.getString("Cancel", R.string.Cancel), null);
@@ -3150,7 +3148,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                 Theme.createSimpleSelectorCircleDrawable(AndroidUtilities.dp(56), Theme.getColor(Theme.key_profile_actionBackground), Theme.getColor(Theme.key_profile_actionPressedBackground)),
                 0, 0);
         combinedDrawable.setIconSize(AndroidUtilities.dp(56), AndroidUtilities.dp(56));
-        writeButton.setBackgroundDrawable(combinedDrawable);
+        writeButton.setBackground(combinedDrawable);
         if (userId != 0) {
             if (imageUpdater != null) {
                 cameraDrawable = new RLottieDrawable(R.raw.camera_outline, "" + R.raw.camera_outline, AndroidUtilities.dp(56), AndroidUtilities.dp(56), false, null);
@@ -3233,9 +3231,12 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
             if (searchItem != null) {
                 searchItem.setAlpha(1.0f - value);
                 searchItem.setScaleY(1.0f - value);
-                searchItem.setVisibility(searchItem.getAlpha() == 0f ? View.GONE : View.VISIBLE);
-                if (qrItem != null && searchItem.getVisibility() == View.VISIBLE) {
+                searchItem.setVisibility(View.VISIBLE);
+                searchItem.setClickable(searchItem.getAlpha() > .5f);
+                if (qrItem != null) {
                     float translation = AndroidUtilities.dp(48) * value;
+//                    if (searchItem.getVisibility() == View.VISIBLE)
+//                        translation += AndroidUtilities.dp(48);
                     qrItem.setTranslationX(translation);
                     avatarsViewPagerIndicatorView.setTranslationX(translation - AndroidUtilities.dp(48));
                 }
@@ -4320,8 +4321,9 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                                 qrItemAnimation.start();
                             } else {
                                 qrItem.setAlpha(setQrVisible ? 1.0f : 0.0f);
-                                qrItem.setTranslationX(setQrVisible ? 0f : AndroidUtilities.dp(48f));
-                                avatarsViewPagerIndicatorView.setTranslationX(setQrVisible ? 0f : -AndroidUtilities.dp(48f));
+                                float translation = AndroidUtilities.dp(48) * qrItem.getAlpha();
+                                qrItem.setTranslationX(translation);
+                                avatarsViewPagerIndicatorView.setTranslationX(translation - AndroidUtilities.dp(48));
                             }
                         }
                     }
@@ -6089,7 +6091,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
         }
 
         if (qrItem != null) {
-            qrItem.setVisibility(isQrNeedVisible() ? View.VISIBLE : View.GONE);
+            qrItem.setVisibility(searchTransitionProgress > 0.5f && isQrNeedVisible() ? View.VISIBLE : View.GONE);
         }
     }
 
@@ -8240,6 +8242,21 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
             args.putLong("user_id", userId);
             presentFragment(new QrActivity(args));
         }
+    }
+
+    @Override
+    protected void onBecomeFullyVisible() {
+        super.onBecomeFullyVisible();
+
+        try {
+            Drawable shadowDrawable = fragmentView.getContext().getResources().getDrawable(R.drawable.floating_shadow_profile).mutate();
+            shadowDrawable.setColorFilter(new PorterDuffColorFilter(Color.BLACK, PorterDuff.Mode.MULTIPLY));
+            CombinedDrawable combinedDrawable = new CombinedDrawable(shadowDrawable,
+                    Theme.createSimpleSelectorCircleDrawable(AndroidUtilities.dp(56), Theme.getColor(Theme.key_profile_actionBackground), Theme.getColor(Theme.key_profile_actionPressedBackground)),
+                    0, 0);
+            combinedDrawable.setIconSize(AndroidUtilities.dp(56), AndroidUtilities.dp(56));
+            writeButton.setBackground(combinedDrawable);
+        } catch (Exception e) {}
     }
 
     private boolean isQrNeedVisible() {
