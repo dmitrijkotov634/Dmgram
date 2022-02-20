@@ -2,6 +2,7 @@ package org.telegram.ui.Components;
 
 import android.content.Context;
 import android.graphics.Canvas;
+import android.graphics.Color;
 import android.graphics.Paint;
 import android.view.View;
 import android.widget.FrameLayout;
@@ -15,8 +16,8 @@ import org.telegram.ui.ChatActivity;
 public class ChatBlurredFrameLayout extends FrameLayout {
 
     ChatActivity chatActivity;
-    Paint backgroundPaint;
-    public int backgroundColor;
+    protected Paint backgroundPaint;
+    public int backgroundColor = Color.TRANSPARENT;
     public int backgroundPaddingBottom;
     public int backgroundPaddingTop;
     public boolean isTopView = true;
@@ -29,7 +30,7 @@ public class ChatBlurredFrameLayout extends FrameLayout {
 
     @Override
     protected void dispatchDraw(Canvas canvas) {
-        if (SharedConfig.chatBlurEnabled() && chatActivity != null && drawBlur) {
+        if (SharedConfig.chatBlurEnabled() && chatActivity != null && drawBlur && backgroundColor != Color.TRANSPARENT) {
             if (backgroundPaint == null) {
                 backgroundPaint = new Paint();
             }
@@ -65,7 +66,7 @@ public class ChatBlurredFrameLayout extends FrameLayout {
 
     @Override
     protected void onDetachedFromWindow() {
-        if (SharedConfig.chatBlurEnabled() && chatActivity != null) {
+        if (chatActivity != null) {
             chatActivity.contentView.blurBehindViews.remove(this);
         }
         super.onDetachedFromWindow();

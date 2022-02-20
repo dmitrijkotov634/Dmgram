@@ -388,6 +388,7 @@ public class MediaDataController extends BaseController {
         getMessagesStorage().getStorageQueue().postRunnable(() -> {
             try {
                 if (reactionsFinal != null) {
+                    getMessagesStorage().getDatabase().executeFast("DELETE FROM reactions").stepThis().dispose();
                     SQLitePreparedStatement state = getMessagesStorage().getDatabase().executeFast("REPLACE INTO reactions VALUES(?, ?, ?)");
                     state.requery();
                     int size = 4; // Integer.BYTES
@@ -2730,7 +2731,7 @@ public class MediaDataController extends BaseController {
             }
             if (isVoice) {
                 return MEDIA_AUDIO;
-            } else if (isVideo && !isAnimated) {
+            } else if (isVideo && !isAnimated && !isSticker) {
                 return MEDIA_PHOTOVIDEO;
             } else if (isSticker) {
                 return -1;

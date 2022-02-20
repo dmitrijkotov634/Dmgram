@@ -46,6 +46,7 @@ import org.telegram.messenger.FileLog;
 import org.telegram.messenger.MessagesController;
 import org.telegram.messenger.R;
 import org.telegram.messenger.SharedConfig;
+import org.telegram.ui.Components.BackButtonMenu;
 import org.telegram.ui.Components.Bulletin;
 import org.telegram.ui.Components.CubicBezierInterpolator;
 import org.telegram.ui.Components.GroupCallPip;
@@ -323,6 +324,7 @@ public class ActionBarLayout extends FrameLayout {
     protected Activity parentActivity;
 
     public ArrayList<BaseFragment> fragmentsStack;
+    public ArrayList<BackButtonMenu.PulledDialog> pulledDialogs;
     private Rect rect = new Rect();
     private boolean delayedAnimationResumed;
 
@@ -1623,11 +1625,11 @@ public class ActionBarLayout extends FrameLayout {
         }
     }
 
-    public void showLastFragment() {
+    public void showFragment(int i) {
         if (fragmentsStack.isEmpty()) {
             return;
         }
-        for (int a = 0; a < fragmentsStack.size() - 1; a++) {
+        for (int a = 0; a < i; a++) {
             BaseFragment previousFragment = fragmentsStack.get(a);
             if (previousFragment.actionBar != null && previousFragment.actionBar.shouldAddToContainer()) {
                 ViewGroup parent = (ViewGroup) previousFragment.actionBar.getParent();
@@ -1644,7 +1646,7 @@ public class ActionBarLayout extends FrameLayout {
                 }
             }
         }
-        BaseFragment previousFragment = fragmentsStack.get(fragmentsStack.size() - 1);
+        BaseFragment previousFragment = fragmentsStack.get(i);
         previousFragment.setParentLayout(this);
         View fragmentView = previousFragment.fragmentView;
         if (fragmentView == null) {
@@ -1673,6 +1675,13 @@ public class ActionBarLayout extends FrameLayout {
         if (!previousFragment.hasOwnBackground && fragmentView.getBackground() == null) {
             fragmentView.setBackgroundColor(Theme.getColor(Theme.key_windowBackgroundWhite));
         }
+    }
+
+    public void showLastFragment() {
+        if (fragmentsStack.isEmpty()) {
+            return;
+        }
+        showFragment(fragmentsStack.size() - 1);
     }
 
     private void removeFragmentFromStackInternal(BaseFragment fragment) {

@@ -50,6 +50,7 @@ import android.util.SparseIntArray;
 import android.util.TypedValue;
 import android.view.Display;
 import android.view.Gravity;
+import android.view.HapticFeedbackConstants;
 import android.view.MotionEvent;
 import android.view.VelocityTracker;
 import android.view.View;
@@ -112,8 +113,10 @@ import org.telegram.tgnet.SerializedData;
 import org.telegram.tgnet.TLObject;
 import org.telegram.tgnet.TLRPC;
 import org.telegram.ui.ActionBar.ActionBar;
+import org.telegram.ui.ActionBar.ActionBarLayout;
 import org.telegram.ui.ActionBar.ActionBarMenu;
 import org.telegram.ui.ActionBar.ActionBarMenuItem;
+import org.telegram.ui.ActionBar.ActionBarPopupWindow;
 import org.telegram.ui.ActionBar.AlertDialog;
 import org.telegram.ui.ActionBar.BackDrawable;
 import org.telegram.ui.ActionBar.BaseFragment;
@@ -137,6 +140,7 @@ import org.telegram.ui.Components.AnimatedFileDrawable;
 import org.telegram.ui.Components.AnimationProperties;
 import org.telegram.ui.Components.AudioPlayerAlert;
 import org.telegram.ui.Components.AvatarDrawable;
+import org.telegram.ui.Components.BackButtonMenu;
 import org.telegram.ui.Components.BackupImageView;
 import org.telegram.ui.Components.BulletinFactory;
 import org.telegram.ui.Components.ChatAvatarContainer;
@@ -219,6 +223,17 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
     private AvatarDrawable avatarDrawable;
     private ImageUpdater imageUpdater;
     private int avatarColor;
+
+    private View scrimView = null;
+    private Paint scrimPaint = new Paint(Paint.ANTI_ALIAS_FLAG) {
+        @Override
+        public void setAlpha(int a) {
+            super.setAlpha(a);
+            fragmentView.invalidate();
+        }
+    };
+    private Paint actionBarBackgroundPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private ActionBarPopupWindow scrimPopupWindow;
 
     private int overlayCountVisible;
 
@@ -1486,6 +1501,20 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
         actionBar.setAddToContainer(false);
         actionBar.setClipContent(true);
         actionBar.setOccupyStatusBar(Build.VERSION.SDK_INT >= 21 && !AndroidUtilities.isTablet() && !inBubbleMode);
+        ImageView backButton = actionBar.getBackButton();
+        backButton.setOnLongClickListener(e -> {
+            ActionBarPopupWindow menu = BackButtonMenu.show(this, backButton, getDialogId());
+            if (menu != null) {
+                menu.setOnDismissListener(() -> dimBehindView(false));
+                dimBehindView(backButton, 0.3f);
+                if (undoView != null) {
+                    undoView.hide(true, 1);
+                }
+                return true;
+            } else {
+                return false;
+            }
+        });
         return actionBar;
     }
 
@@ -2323,6 +2352,23 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                         }
                     }
                 }
+
+                if (scrimPaint.getAlpha() > 0) {
+                    canvas.drawRect(0, 0, getWidth(), getHeight(), scrimPaint);
+                }
+                if (scrimView != null) {
+                    int c = canvas.save();
+                    canvas.translate(scrimView.getLeft(), scrimView.getTop());
+                    if (scrimView == actionBar.getBackButton()) {
+                        int r = Math.max(scrimView.getMeasuredWidth(), scrimView.getMeasuredHeight()) / 2;
+                        int wasAlpha = actionBarBackgroundPaint.getAlpha();
+                        actionBarBackgroundPaint.setAlpha((int) (wasAlpha * (scrimPaint.getAlpha() / 255f) / 0.3f));
+                        canvas.drawCircle(r, r, r * 0.8f, actionBarBackgroundPaint);
+                        actionBarBackgroundPaint.setAlpha(wasAlpha);
+                    }
+                    scrimView.draw(canvas);
+                    canvas.restoreToCount(c);
+                }
             }
 
             @Override
@@ -2339,6 +2385,11 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
         listView = new RecyclerListView(context) {
 
             private VelocityTracker velocityTracker;
+
+            @Override
+            protected boolean canHighlightChildAt(View child, float x, float y) {
+                return !(child instanceof AboutLinkCell);
+            }
 
             @Override
             protected boolean allowSelectChildAtPosition(View child) {
@@ -2507,6 +2558,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
             }
         };
         layoutManager.setOrientation(LinearLayoutManager.VERTICAL);
+        layoutManager.mIgnoreTopPadding = false;
         listView.setLayoutManager(layoutManager);
         listView.setGlowColor(0);
         listView.setAdapter(listAdapter);
@@ -2582,7 +2634,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
             } else if (position == sendMessageRow) {
                 onWriteButtonClick();
             } else if (position == reportRow) {
-                AlertsCreator.createReportAlert(getParentActivity(), getDialogId(), 0, ProfileActivity.this);
+                AlertsCreator.createReportAlert(getParentActivity(), getDialogId(), 0, ProfileActivity.this, null);
             } else if (position >= membersStartRow && position < membersEndRow) {
                 TLRPC.ChatParticipant participant;
                 if (!sortedUsers.isEmpty()) {
@@ -2693,7 +2745,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
             } else if (position == setAvatarRow) {
                 onWriteButtonClick();
             } else {
-                processOnClickOrPress(position);
+                processOnClickOrPress(position, view);
             }
         });
 
@@ -2726,8 +2778,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                                 BuildVars.DEBUG_PRIVATE_VERSION ? (SharedConfig.disableVoiceAudioEffects ? "Enable voip audio effects" : "Disable voip audio effects") : null,
                                 Build.VERSION.SDK_INT >= 21 ? (SharedConfig.noStatusBar ? "Show status bar background" : "Hide status bar background") : null,
                                 BuildVars.DEBUG_PRIVATE_VERSION ? "Clean app update" : null,
-                                BuildVars.DEBUG_PRIVATE_VERSION ? "Reset suggestions" : null,
-                                SharedConfig.canBlurChat() ? (SharedConfig.chatBlur ? "Disable blur in chat" : "Enable blur in chat") : null
+                                BuildVars.DEBUG_PRIVATE_VERSION ? "Reset suggestions" : null
                         };
                         builder.setItems(items, (dialog, which) -> {
                             if (which == 0) {
@@ -2798,8 +2849,6 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                                 suggestions.add("VALIDATE_PHONE_NUMBER");
                                 suggestions.add("VALIDATE_PASSWORD");
                                 getNotificationCenter().postNotificationName(NotificationCenter.newSuggestionsAvailable);
-                            }  else if (which == 17) {
-                                SharedConfig.toggleDebugChatBlur();
                             }
                         });
                         builder.setNegativeButton(LocaleController.getString("Cancel", R.string.Cancel), null);
@@ -2821,7 +2870,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                     }
                     return onMemberClick(participant, true);
                 } else {
-                    return processOnClickOrPress(position);
+                    return processOnClickOrPress(position, view);
                 }
             }
         });
@@ -3405,6 +3454,8 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
             }
         });
         avatarsViewPager.setPinchToZoomHelper(pinchToZoomHelper);
+        scrimPaint.setAlpha(0);
+        actionBarBackgroundPaint.setColor(Theme.getColor(Theme.key_listSelector));
         return fragmentView;
     }
 
@@ -3420,6 +3471,9 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
 
     public TLRPC.Chat getCurrentChat() {
         return currentChat;
+    }
+    public TLRPC.UserFull getUserInfo() {
+        return userInfo;
     }
 
     @Override
@@ -3739,7 +3793,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
         presentFragment(fragment);
     }
 
-    private boolean processOnClickOrPress(final int position) {
+    private boolean processOnClickOrPress(final int position, final View view) {
         if (position == usernameRow || position == setUsernameRow) {
             final String username;
             if (userId != 0) {
@@ -3818,7 +3872,9 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                         android.content.ClipboardManager clipboard = (android.content.ClipboardManager) ApplicationLoader.applicationContext.getSystemService(Context.CLIPBOARD_SERVICE);
                         android.content.ClipData clip = android.content.ClipData.newPlainText("label", "+" + user.phone);
                         clipboard.setPrimaryClip(clip);
-                        BulletinFactory.of(this).createCopyBulletin(LocaleController.getString("PhoneCopied", R.string.PhoneCopied)).show();
+                        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
+                            BulletinFactory.of(this).createCopyBulletin(LocaleController.getString("PhoneCopied", R.string.PhoneCopied)).show();
+                        }
                     } catch (Exception e) {
                         FileLog.e(e);
                     }
@@ -3830,6 +3886,9 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
             return true;
         } else if (position == channelInfoRow || position == userInfoRow || position == locationRow || position == bioRow) {
             if (position == bioRow && (userInfo == null || TextUtils.isEmpty(userInfo.about))) {
+                return false;
+            }
+            if (view instanceof AboutLinkCell && ((AboutLinkCell) view).onClick()) {
                 return false;
             }
             AlertDialog.Builder builder = new AlertDialog.Builder(getParentActivity());
@@ -3857,7 +3916,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                 }
             });
             showDialog(builder.create());
-            return true;
+            return !(view instanceof AboutLinkCell);
         }
         return false;
     }
@@ -5074,6 +5133,8 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
         return animationProgress;
     }
 
+    private AboutLinkCell aboutLinkCell;
+
     @Keep
     public void setAnimationProgress(float progress) {
         animationProgress = progress;
@@ -5167,6 +5228,10 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
 
         needLayout(true);
         fragmentView.invalidate();
+
+        if (aboutLinkCell != null) {
+            aboutLinkCell.invalidate();
+        }
     }
 
     boolean profileTransitionInProgress;
@@ -6854,7 +6919,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                     break;
                 }
                 case 3: {
-                    view = new AboutLinkCell(mContext, ProfileActivity.this) {
+                    view = aboutLinkCell = new AboutLinkCell(mContext, ProfileActivity.this) {
                         @Override
                         protected void didPressUrl(String url) {
                             if (url.startsWith("@")) {
@@ -6872,6 +6937,16 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                                     }
                                 }
                             }
+                        }
+
+                        @Override
+                        protected void didResizeEnd() {
+                            layoutManager.mIgnoreTopPadding = false;
+                        }
+
+                        @Override
+                        protected void didResizeStart() {
+                            layoutManager.mIgnoreTopPadding = true;
                         }
                     };
                     break;
@@ -7145,6 +7220,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                         }
                         aboutLinkCell.setText(text, ChatObject.isChannel(currentChat) && !currentChat.megagroup);
                     }
+                    aboutLinkCell.setOnClickListener(e -> processOnClickOrPress(position, aboutLinkCell));
                     break;
                 case 4:
                     TextCell textCell = (TextCell) holder.itemView;
@@ -8012,6 +8088,50 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
         public boolean isSearchWas() {
             return searchWas;
         }
+    }
+
+
+    private void dimBehindView(View view, boolean enable) {
+        scrimView = view;
+        dimBehindView(enable);
+    }
+    private void dimBehindView(View view, float value) {
+        scrimView = view;
+        dimBehindView(value);
+    }
+    private void dimBehindView(boolean enable) {
+        dimBehindView(enable ? 0.2f : 0);
+    }
+    private AnimatorSet scrimAnimatorSet = null;
+    private void dimBehindView(float value) {
+        boolean enable = value > 0;
+        fragmentView.invalidate();
+        if (scrimAnimatorSet != null) {
+            scrimAnimatorSet.cancel();
+        }
+        scrimAnimatorSet = new AnimatorSet();
+        ArrayList<Animator> animators = new ArrayList<>();
+        ValueAnimator scrimPaintAlphaAnimator;
+        if (enable) {
+            animators.add(scrimPaintAlphaAnimator = ValueAnimator.ofFloat(0, value));
+        } else {
+            animators.add(scrimPaintAlphaAnimator = ValueAnimator.ofFloat(scrimPaint.getAlpha() / 255f, 0));
+        }
+        scrimPaintAlphaAnimator.addUpdateListener(a -> {
+            scrimPaint.setAlpha((int) (255 * (float) a.getAnimatedValue()));
+        });
+        scrimAnimatorSet.playTogether(animators);
+        scrimAnimatorSet.setDuration(enable ? 150 : 220);
+        if (!enable) {
+            scrimAnimatorSet.addListener(new AnimatorListenerAdapter() {
+                @Override
+                public void onAnimationEnd(Animator animation) {
+                    scrimView = null;
+                    fragmentView.invalidate();
+                }
+            });
+        }
+        scrimAnimatorSet.start();
     }
 
     @Override

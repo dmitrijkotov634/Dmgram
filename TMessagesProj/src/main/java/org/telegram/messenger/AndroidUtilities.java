@@ -17,6 +17,7 @@ import android.app.Activity;
 import android.content.ContentResolver;
 import android.content.ContentUris;
 import android.content.Context;
+import android.content.ContextWrapper;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
@@ -30,6 +31,7 @@ import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Color;
+import android.graphics.ColorMatrix;
 import android.graphics.Matrix;
 import android.graphics.Paint;
 import android.graphics.Point;
@@ -64,7 +66,6 @@ import android.text.util.Linkify;
 import android.util.DisplayMetrics;
 import android.util.StateSet;
 import android.util.TypedValue;
-import android.view.ContextThemeWrapper;
 import android.view.Display;
 import android.view.Gravity;
 import android.view.MotionEvent;
@@ -146,6 +147,7 @@ import java.util.Calendar;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.List;
@@ -381,8 +383,8 @@ public class AndroidUtilities {
         if (context instanceof Activity) {
             return (Activity) context;
         }
-        if (context instanceof ContextThemeWrapper) {
-            return findActivity(((ContextThemeWrapper) context).getBaseContext());
+        if (context instanceof ContextWrapper) {
+            return findActivity(((ContextWrapper) context).getBaseContext());
         }
         return null;
     }
@@ -696,6 +698,17 @@ public class AndroidUtilities {
         return new int[]{(int) (r * 255), (int) (g * 255), (int) (b * 255)};
     }
 
+    public static void lightColorMatrix(ColorMatrix colorMatrix, float addLightness) {
+        if (colorMatrix == null) {
+            return;
+        }
+        float[] matrix = colorMatrix.getArray();
+        matrix[4] += addLightness;
+        matrix[9] += addLightness;
+        matrix[14] += addLightness;
+        colorMatrix.set(matrix);
+    }
+
     public static void requestAdjustResize(Activity activity, int classGuid) {
         if (activity == null || isTablet()) {
             return;
@@ -739,7 +752,7 @@ public class AndroidUtilities {
             writer.flush();
             writer.close();
         } catch (Throwable e) {
-            FileLog.e(e);
+            FileLog.e(e, false);
         }
     }
 
@@ -3586,6 +3599,62 @@ public class AndroidUtilities {
 
     public static boolean hasFlagSecureFragment() {
         return flagSecureFragment != null;
+    }
+
+    public static void setFlagSecure(BaseFragment parentFragment, boolean set) {
+        if (parentFragment == null || parentFragment.getParentActivity() == null) {
+            return;
+        }
+        if (set) {
+            try {
+                parentFragment.getParentActivity().getWindow().setFlags(WindowManager.LayoutParams.FLAG_SECURE, WindowManager.LayoutParams.FLAG_SECURE);
+                flagSecureFragment = new WeakReference<>(parentFragment);
+            } catch (Exception ignore) {
+
+            }
+        } else if (flagSecureFragment != null && flagSecureFragment.get() == parentFragment) {
+            try {
+                parentFragment.getParentActivity().getWindow().clearFlags(WindowManager.LayoutParams.FLAG_SECURE);
+            } catch (Exception ignore) {
+
+            }
+            flagSecureFragment = null;
+        }
+    }
+
+    private static final HashMap<Window, ArrayList<Long>> flagSecureReasons = new HashMap<>();
+    // Sets FLAG_SECURE to true, until it gets unregistered (when returned callback is run)
+    // Useful for having multiple reasons to have this flag on.
+    public static Runnable registerFlagSecure(Window window) {
+        final long reasonId = (long) (Math.random() * 999999999);
+        final ArrayList<Long> reasonIds;
+        if (flagSecureReasons.containsKey(window)) {
+            reasonIds = flagSecureReasons.get(window);
+        } else {
+            reasonIds = new ArrayList<>();
+            flagSecureReasons.put(window, reasonIds);
+        }
+        reasonIds.add(reasonId);
+        updateFlagSecure(window);
+        return () -> {
+            reasonIds.remove(reasonId);
+            updateFlagSecure(window);
+        };
+    }
+    private static void updateFlagSecure(Window window) {
+        if (Build.VERSION.SDK_INT >= 23) {
+            if (window == null) {
+                return;
+            }
+            final boolean value = flagSecureReasons.containsKey(window) && flagSecureReasons.get(window).size() > 0;
+            try {
+                if (value) {
+                    window.setFlags(WindowManager.LayoutParams.FLAG_SECURE, WindowManager.LayoutParams.FLAG_SECURE);
+                } else {
+                    window.clearFlags(WindowManager.LayoutParams.FLAG_SECURE);
+                }
+            } catch (Exception ignore) {}
+        }
     }
 
     public static void openSharing(BaseFragment fragment, String url) {

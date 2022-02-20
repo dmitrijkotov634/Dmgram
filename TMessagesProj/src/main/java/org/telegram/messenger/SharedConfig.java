@@ -94,7 +94,7 @@ public class SharedConfig {
     public static boolean chatBubbles = Build.VERSION.SDK_INT >= 30;
     public static boolean autoplayGifs = true;
     public static boolean autoplayVideo = true;
-    public static boolean raiseToSpeak = true;
+    public static boolean raiseToSpeak = false;
     public static boolean customTabs = true;
     public static boolean directShare = true;
     public static boolean inappCamera = true;
@@ -106,7 +106,7 @@ public class SharedConfig {
     public static boolean saveStreamMedia = true;
     public static boolean smoothKeyboard = true;
     public static boolean pauseMusicOnRecord = true;
-    public static boolean chatBlur = false;
+    public static boolean chatBlur = true;
     public static boolean noiseSupression;
     public static boolean noStatusBar;
     public static boolean sortContactsByName;
@@ -331,7 +331,7 @@ public class SharedConfig {
             autoplayGifs = preferences.getBoolean("autoplay_gif", true);
             autoplayVideo = preferences.getBoolean("autoplay_video", true);
             mapPreviewType = preferences.getInt("mapPreviewType", 2);
-            raiseToSpeak = preferences.getBoolean("raise_to_speak", true);
+            raiseToSpeak = preferences.getBoolean("raise_to_speak", false);
             customTabs = preferences.getBoolean("custom_tabs", true);
             directShare = preferences.getBoolean("direct_share", true);
             shuffleMusic = preferences.getBoolean("shuffleMusic", false);
@@ -349,7 +349,7 @@ public class SharedConfig {
             saveStreamMedia = preferences.getBoolean("saveStreamMedia", true);
             smoothKeyboard = preferences.getBoolean("smoothKeyboard2", true);
             pauseMusicOnRecord = preferences.getBoolean("pauseMusicOnRecord", false);
-            chatBlur = preferences.getBoolean("chatBlur", false);
+            chatBlur = preferences.getBoolean("chatBlur", true);
             streamAllVideo = preferences.getBoolean("streamAllVideo", BuildVars.DEBUG_VERSION);
             streamMkv = preferences.getBoolean("streamMkv", false);
             suggestStickers = preferences.getInt("suggestStickers", 0);
@@ -933,7 +933,7 @@ public class SharedConfig {
         editor.commit();
     }
 
-    public static void toggleDebugChatBlur() {
+    public static void toggleChatBlur() {
         chatBlur = !chatBlur;
         SharedPreferences preferences = MessagesController.getGlobalMainSettings();
         SharedPreferences.Editor editor = preferences.edit();

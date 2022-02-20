@@ -13,7 +13,6 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.SharedPreferences;
 import android.content.res.Configuration;
-import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.EditText;
@@ -32,11 +31,6 @@ import org.telegram.messenger.MessagesController;
 import org.telegram.messenger.NotificationCenter;
 import org.telegram.messenger.R;
 import org.telegram.messenger.Utilities;
-import org.telegram.ui.ActionBar.AlertDialog;
-import org.telegram.ui.ActionBar.Theme;
-import org.telegram.ui.ActionBar.ThemeDescription;
-import org.telegram.ui.Cells.HeaderCell;
-import org.telegram.ui.Cells.LanguageCell;
 import org.telegram.ui.ActionBar.ActionBar;
 import org.telegram.ui.ActionBar.ActionBarMenu;
 import org.telegram.ui.ActionBar.ActionBarMenuItem;
@@ -60,7 +54,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashSet;
-import java.util.Set;
 import java.util.Timer;
 
 public class LanguageSelectActivity extends BaseFragment implements NotificationCenter.NotificationCenterDelegate {
@@ -175,8 +168,9 @@ public class LanguageSelectActivity extends BaseFragment implements Notification
                     return;
                 }
                 boolean search = listView.getAdapter() == searchListViewAdapter;
-                if (!search)
+                if (!search) {
                     position -= 2;
+                }
                 LocaleController.LocaleInfo localeInfo;
                 if (search) {
                     localeInfo = searchResult.get(position);
@@ -219,8 +213,9 @@ public class LanguageSelectActivity extends BaseFragment implements Notification
                     return false;
                 }
                 boolean search = listView.getAdapter() == searchListViewAdapter;
-                if (!search)
-                    position--;
+                if (!search) {
+                    position -= 2;
+                }
                 LocaleController.LocaleInfo localeInfo;
                 if (search) {
                     localeInfo = searchResult.get(position);
@@ -505,6 +500,7 @@ public class LanguageSelectActivity extends BaseFragment implements Notification
                 doNotTranslateCellValue = String.format(LocaleController.getPluralString("Languages", getRestrictedLanguages().size()), getRestrictedLanguages().size());
             doNotTranslateCell.setTextAndValue(LocaleController.getString("DoNotTranslate", R.string.DoNotTranslate), doNotTranslateCellValue, false);
             doNotTranslateCell.setClickable(value);
+
             doNotTranslateCellAnimation = ValueAnimator.ofFloat(doNotTranslateCell.getAlpha(), value ? 1f : 0f);
             doNotTranslateCellAnimation.setInterpolator(CubicBezierInterpolator.DEFAULT);
             doNotTranslateCellAnimation.addUpdateListener(a -> {
@@ -543,10 +539,16 @@ public class LanguageSelectActivity extends BaseFragment implements Notification
         }
 
         void updateHeight() {
+            header.measure(MeasureSpec.makeMeasureSpec(AndroidUtilities.displaySize.x, MeasureSpec.EXACTLY), MeasureSpec.UNSPECIFIED);
+            showButtonCheck.measure(MeasureSpec.makeMeasureSpec(AndroidUtilities.displaySize.x, MeasureSpec.EXACTLY), MeasureSpec.UNSPECIFIED);
+            doNotTranslateCell.measure(MeasureSpec.makeMeasureSpec(AndroidUtilities.displaySize.x, MeasureSpec.EXACTLY), MeasureSpec.UNSPECIFIED);
+            info.measure(MeasureSpec.makeMeasureSpec(AndroidUtilities.displaySize.x, MeasureSpec.EXACTLY), MeasureSpec.UNSPECIFIED);
+            info2.measure(MeasureSpec.makeMeasureSpec(AndroidUtilities.displaySize.x, MeasureSpec.EXACTLY), MeasureSpec.UNSPECIFIED);
+
             int newHeight = searching ? 0 : height();
-            if (getLayoutParams() == null)
+            if (getLayoutParams() == null) {
                 setLayoutParams(new RecyclerView.LayoutParams(LayoutHelper.MATCH_PARENT, newHeight));
-            else if (getLayoutParams().height != newHeight) {
+            } else if (getLayoutParams().height != newHeight) {
                 RecyclerView.LayoutParams lp = (RecyclerView.LayoutParams) getLayoutParams();
                 lp.height = newHeight;
                 setLayoutParams(lp);

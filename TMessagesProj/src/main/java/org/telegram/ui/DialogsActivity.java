@@ -43,6 +43,7 @@ import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Vibrator;
+import android.text.TextPaint;
 import android.text.TextUtils;
 import android.util.Property;
 import android.util.StateSet;
@@ -59,9 +60,11 @@ import android.view.ViewOutlineProvider;
 import android.view.ViewParent;
 import android.view.ViewTreeObserver;
 import android.view.WindowManager;
+import android.view.accessibility.AccessibilityNodeInfo;
 import android.view.animation.AccelerateDecelerateInterpolator;
 import android.view.animation.DecelerateInterpolator;
 import android.view.animation.Interpolator;
+import android.widget.Button;
 import android.widget.EditText;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
@@ -289,7 +292,14 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
 
     private RecyclerView sideMenu;
     private ChatActivityEnterView commentView;
+    private ImageView[] writeButton;
+    private FrameLayout writeButtonContainer;
+    private View selectedCountView;
     private ActionBarMenuItem switchItem;
+
+    private RectF rect = new RectF();
+    private Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private TextPaint textPaint = new TextPaint(Paint.ANTI_ALIAS_FLAG);
 
     private FragmentContextView fragmentLocationContextView;
     private FragmentContextView fragmentContextView;
@@ -347,6 +357,7 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
     private DialogsActivityDelegate delegate;
 
     private ArrayList<Long> selectedDialogs = new ArrayList<>();
+    public boolean notify = true;
 
     private int canReadCount;
     private int canPinCount;
@@ -1821,6 +1832,7 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
             getNotificationCenter().addObserver(this, NotificationCenter.fileLoaded);
             getNotificationCenter().addObserver(this, NotificationCenter.fileLoadFailed);
             getNotificationCenter().addObserver(this, NotificationCenter.fileLoadProgressChanged);
+            getNotificationCenter().addObserver(this, NotificationCenter.dialogsUnreadReactionsCounterChanged);
 
             NotificationCenter.getGlobalInstance().addObserver(this, NotificationCenter.didSetPasscode);
             NotificationCenter.getGlobalInstance().addObserver(this, NotificationCenter.appUpdateAvailable);
@@ -1900,6 +1912,7 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
             NotificationCenter.getGlobalInstance().removeObserver(this, NotificationCenter.appUpdateAvailable);
         }
 
+        getNotificationCenter().removeObserver(this, NotificationCenter.dialogsUnreadReactionsCounterChanged);
         getNotificationCenter().removeObserver(this, NotificationCenter.onDatabaseMigration);
         getNotificationCenter().removeObserver(this, NotificationCenter.didClearDatabase);
         if (commentView != null) {
@@ -2573,7 +2586,7 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
                     }
                 }
             };
-            viewPage.listView.setItemAnimator(viewPage.dialogsItemAnimator);
+//            viewPage.listView.setItemAnimator(viewPage.dialogsItemAnimator);
             viewPage.listView.setVerticalScrollBarEnabled(true);
             viewPage.listView.setInstantClick(true);
             viewPage.layoutManager = new LinearLayoutManager(context) {
@@ -3216,6 +3229,7 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
             commentView.setAllowStickersAndGifs(false, false);
             commentView.setForceShowSendButton(true, false);
             commentView.setVisibility(View.GONE);
+            commentView.getSendButton().setAlpha(0);
             contentView.addView(commentView, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, Gravity.LEFT | Gravity.BOTTOM));
             commentView.setDelegate(new ChatActivityEnterView.ChatActivityEnterViewDelegate() {
                 @Override
@@ -3326,6 +3340,99 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
 
                 }
             });
+
+            writeButtonContainer = new FrameLayout(context) {
+                @Override
+                public void onInitializeAccessibilityNodeInfo(AccessibilityNodeInfo info) {
+                    super.onInitializeAccessibilityNodeInfo(info);
+                    info.setText(LocaleController.formatPluralString("AccDescrShareInChats", selectedDialogs.size()));
+                    info.setClassName(Button.class.getName());
+                    info.setLongClickable(true);
+                    info.setClickable(true);
+                }
+            };
+            writeButtonContainer.setFocusable(true);
+            writeButtonContainer.setFocusableInTouchMode(true);
+            writeButtonContainer.setVisibility(View.INVISIBLE);
+            writeButtonContainer.setScaleX(0.2f);
+            writeButtonContainer.setScaleY(0.2f);
+            writeButtonContainer.setAlpha(0.0f);
+            contentView.addView(writeButtonContainer, LayoutHelper.createFrame(60, 60, Gravity.RIGHT | Gravity.BOTTOM, 0, 0, 6, 10));
+
+            textPaint.setTextSize(AndroidUtilities.dp(12));
+            textPaint.setTypeface(AndroidUtilities.getTypeface("fonts/rmedium.ttf"));
+            selectedCountView = new View(context) {
+                @Override
+                protected void onDraw(Canvas canvas) {
+                    String text = String.format("%d", Math.max(1, selectedDialogs.size()));
+                    int textSize = (int) Math.ceil(textPaint.measureText(text));
+                    int size = Math.max(AndroidUtilities.dp(16) + textSize, AndroidUtilities.dp(24));
+                    int cx = getMeasuredWidth() / 2;
+                    int cy = getMeasuredHeight() / 2;
+
+                    textPaint.setColor(getThemedColor(Theme.key_dialogRoundCheckBoxCheck));
+                    paint.setColor(getThemedColor(Theme.isCurrentThemeDark() ? Theme.key_voipgroup_inviteMembersBackground : Theme.key_dialogBackground));
+                    rect.set(cx - size / 2, 0, cx + size / 2, getMeasuredHeight());
+                    canvas.drawRoundRect(rect, AndroidUtilities.dp(12), AndroidUtilities.dp(12), paint);
+
+                    paint.setColor(getThemedColor(Theme.key_dialogRoundCheckBox));
+                    rect.set(cx - size / 2 + AndroidUtilities.dp(2), AndroidUtilities.dp(2), cx + size / 2 - AndroidUtilities.dp(2), getMeasuredHeight() - AndroidUtilities.dp(2));
+                    canvas.drawRoundRect(rect, AndroidUtilities.dp(10), AndroidUtilities.dp(10), paint);
+
+                    canvas.drawText(text, cx - textSize / 2, AndroidUtilities.dp(16.2f), textPaint);
+                }
+            };
+            selectedCountView.setAlpha(0.0f);
+            selectedCountView.setScaleX(0.2f);
+            selectedCountView.setScaleY(0.2f);
+            contentView.addView(selectedCountView, LayoutHelper.createFrame(42, 24, Gravity.RIGHT | Gravity.BOTTOM, 0, 0, -8, 9));
+
+
+            FrameLayout writeButtonBackground = new FrameLayout(context);
+            Drawable writeButtonDrawable = Theme.createSimpleSelectorCircleDrawable(AndroidUtilities.dp(56), getThemedColor(Theme.key_dialogFloatingButton), getThemedColor(Build.VERSION.SDK_INT >= 21 ? Theme.key_dialogFloatingButtonPressed : Theme.key_dialogFloatingButton));
+            if (Build.VERSION.SDK_INT < 21) {
+                Drawable shadowDrawable = context.getResources().getDrawable(R.drawable.floating_shadow_profile).mutate();
+                shadowDrawable.setColorFilter(new PorterDuffColorFilter(0xff000000, PorterDuff.Mode.MULTIPLY));
+                CombinedDrawable combinedDrawable = new CombinedDrawable(shadowDrawable, drawable, 0, 0);
+                combinedDrawable.setIconSize(AndroidUtilities.dp(56), AndroidUtilities.dp(56));
+                writeButtonDrawable = combinedDrawable;
+            }
+            writeButtonBackground.setBackgroundDrawable(writeButtonDrawable);
+            writeButtonBackground.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                writeButtonBackground.setOutlineProvider(new ViewOutlineProvider() {
+                    @SuppressLint("NewApi")
+                    @Override
+                    public void getOutline(View view, Outline outline) {
+                        outline.setOval(0, 0, AndroidUtilities.dp(56), AndroidUtilities.dp(56));
+                    }
+                });
+            }
+            writeButtonBackground.setOnClickListener(v -> {
+                if (delegate == null || selectedDialogs.isEmpty()) {
+                    return;
+                }
+                delegate.didSelectDialogs(DialogsActivity.this, selectedDialogs, commentView.getFieldText(), false);
+            });
+            writeButtonBackground.setOnLongClickListener(v -> {
+                if (isNextButton) {
+                    return false;
+                }
+                onSendLongClick(writeButtonBackground);
+                return true;
+            });
+
+            writeButton = new ImageView[2];
+            for (int a = 0; a < 2; ++a) {
+                writeButton[a] = new ImageView(context);
+                writeButton[a].setImageResource(a == 1 ? R.drawable.actionbtn_next : R.drawable.attach_send);
+                writeButton[a].setColorFilter(new PorterDuffColorFilter(getThemedColor(Theme.key_dialogFloatingIcon), PorterDuff.Mode.MULTIPLY));
+                writeButton[a].setScaleType(ImageView.ScaleType.CENTER);
+                writeButtonBackground.addView(writeButton[a], LayoutHelper.createFrame(Build.VERSION.SDK_INT >= 21 ? 56 : 60, Build.VERSION.SDK_INT >= 21 ? 56 : 60, Gravity.CENTER));
+            }
+            AndroidUtilities.updateViewVisibilityAnimated(writeButton[0], true, 0.5f, false);
+            AndroidUtilities.updateViewVisibilityAnimated(writeButton[1], false, 0.5f, false);
+            writeButtonContainer.addView(writeButtonBackground, LayoutHelper.createFrame(Build.VERSION.SDK_INT >= 21 ? 56 : 60, Build.VERSION.SDK_INT >= 21 ? 56 : 60, Gravity.LEFT | Gravity.TOP, Build.VERSION.SDK_INT >= 21 ? 2 : 0, 0, 0, 0));
         }
 
         if (filterTabsView != null) {
@@ -3348,16 +3455,16 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
                 private int lastGradientWidth;
 
                 @Override
-                protected void onDraw(Canvas canvas) {
-                    if (updateGradient == null) {
-                        return;
+                public void draw(Canvas canvas) {
+                    if (updateGradient != null) {
+                        paint.setColor(0xffffffff);
+                        paint.setShader(updateGradient);
+                        updateGradient.setLocalMatrix(matrix);
+                        canvas.drawRect(0, 0, getMeasuredWidth(), getMeasuredHeight(), paint);
+                        updateLayoutIcon.setBackgroundGradientDrawable(updateGradient);
+                        updateLayoutIcon.draw(canvas);
                     }
-                    paint.setColor(0xffffffff);
-                    paint.setShader(updateGradient);
-                    updateGradient.setLocalMatrix(matrix);
-                    canvas.drawRect(0, 0, getMeasuredWidth(), getMeasuredHeight(), paint);
-                    updateLayoutIcon.setBackgroundGradientDrawable(updateGradient);
-                    updateLayoutIcon.draw(canvas);
+                    super.draw(canvas);
                 }
 
                 @Override
@@ -3388,7 +3495,7 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
             updateLayout.setVisibility(View.INVISIBLE);
             updateLayout.setTranslationY(AndroidUtilities.dp(48));
             if (Build.VERSION.SDK_INT >= 21) {
-                updateLayout.setBackground(Theme.getSelectorDrawable(Theme.getColor(Theme.key_listSelector), null));
+                updateLayout.setBackground(Theme.getSelectorDrawable(0x40ffffff, false));
             }
             contentView.addView(updateLayout, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, 48, Gravity.LEFT | Gravity.BOTTOM));
             updateLayout.setOnClickListener(v -> {
@@ -4833,11 +4940,11 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
             if (!validateSlowModeDialog(dialogId)) {
                 return;
             }
-            if (!selectedDialogs.isEmpty()) {
+            if (!selectedDialogs.isEmpty() || (initialDialogsType == 3 && selectAlertString != null)) {
                 boolean checked = addOrRemoveSelectedDialog(dialogId, view);
                 if (adapter == searchViewPager.dialogsSearchAdapter) {
-                    actionBar.closeSearchField();
-                    findAndUpdateCheckBox(dialogId, checked);
+                     actionBar.closeSearchField();
+                     findAndUpdateCheckBox(dialogId, checked);
                 }
                 updateSelectedCount();
             } else {
@@ -4985,8 +5092,10 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
             if (!validateSlowModeDialog(dialog.id)) {
                 return false;
             }
-            addOrRemoveSelectedDialog(dialog.id, view);
-            updateSelectedCount();
+            if (!(initialDialogsType == 3 && selectAlertString != null)) {
+                addOrRemoveSelectedDialog(dialog.id, view);
+                updateSelectedCount();
+            }
         } else {
             if (dialog instanceof TLRPC.TL_dialogFolder) {
                 view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS, HapticFeedbackConstants.FLAG_IGNORE_GLOBAL_SETTING);
@@ -6207,6 +6316,7 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
         doneItemAnimator.start();
     }
 
+    private boolean isNextButton = false;
     private void updateSelectedCount() {
         if (commentView != null) {
             if (selectedDialogs.isEmpty()) {
@@ -6219,13 +6329,22 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
                     commentView.hidePopup(false);
                     commentView.closeKeyboard();
                     AnimatorSet animatorSet = new AnimatorSet();
-                    animatorSet.playTogether(ObjectAnimator.ofFloat(commentView, View.TRANSLATION_Y, 0, commentView.getMeasuredHeight()));
+                    animatorSet.playTogether(
+                        ObjectAnimator.ofFloat(commentView, View.TRANSLATION_Y, 0, commentView.getMeasuredHeight()),
+                        ObjectAnimator.ofFloat(writeButtonContainer, View.SCALE_X, .2f),
+                        ObjectAnimator.ofFloat(writeButtonContainer, View.SCALE_Y, .2f),
+                        ObjectAnimator.ofFloat(writeButtonContainer, View.ALPHA, 0),
+                        ObjectAnimator.ofFloat(selectedCountView, View.SCALE_X, 0.2f),
+                        ObjectAnimator.ofFloat(selectedCountView, View.SCALE_Y, 0.2f),
+                        ObjectAnimator.ofFloat(selectedCountView, View.ALPHA, 0.0f)
+                    );
                     animatorSet.setDuration(180);
                     animatorSet.setInterpolator(new DecelerateInterpolator());
                     animatorSet.addListener(new AnimatorListenerAdapter() {
                         @Override
                         public void onAnimationEnd(Animator animation) {
                             commentView.setVisibility(View.GONE);
+                            writeButtonContainer.setVisibility(View.GONE);
                         }
                     });
                     animatorSet.start();
@@ -6233,11 +6352,21 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
                     fragmentView.requestLayout();
                 }
             } else {
+                selectedCountView.invalidate();
                 if (commentView.getTag() == null) {
                     commentView.setFieldText("");
                     commentView.setVisibility(View.VISIBLE);
+                    writeButtonContainer.setVisibility(View.VISIBLE);
                     AnimatorSet animatorSet = new AnimatorSet();
-                    animatorSet.playTogether(ObjectAnimator.ofFloat(commentView, View.TRANSLATION_Y, commentView.getMeasuredHeight(), 0));
+                    animatorSet.playTogether(
+                        ObjectAnimator.ofFloat(commentView, View.TRANSLATION_Y, commentView.getMeasuredHeight(), 0),
+                        ObjectAnimator.ofFloat(writeButtonContainer, View.SCALE_X, 1f),
+                        ObjectAnimator.ofFloat(writeButtonContainer, View.SCALE_Y, 1f),
+                        ObjectAnimator.ofFloat(writeButtonContainer, View.ALPHA, 1f),
+                        ObjectAnimator.ofFloat(selectedCountView, View.SCALE_X, 1f),
+                        ObjectAnimator.ofFloat(selectedCountView, View.SCALE_Y, 1f),
+                        ObjectAnimator.ofFloat(selectedCountView, View.ALPHA, 1f)
+                    );
                     animatorSet.setDuration(180);
                     animatorSet.setInterpolator(new DecelerateInterpolator());
                     animatorSet.addListener(new AnimatorListenerAdapter() {
@@ -6255,6 +6384,10 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
         } else if (initialDialogsType == 10) {
             hideFloatingButton(selectedDialogs.isEmpty());
         }
+
+        isNextButton = shouldShowNextButton(this, selectedDialogs, commentView.getFieldText(), false);
+        AndroidUtilities.updateViewVisibilityAnimated(writeButton[0], !isNextButton, 0.5f, true);
+        AndroidUtilities.updateViewVisibilityAnimated(writeButton[1], isNextButton, 0.5f, true);
     }
 
     @TargetApi(Build.VERSION_CODES.M)
@@ -6389,10 +6522,17 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
                 }
 
                 if (viewPages[a].dialogsAdapter.isDataSetChanged() || args.length > 0) {
-                    viewPages[a].dialogsAdapter.notifyDataSetChanged();
+                    viewPages[a].dialogsAdapter.updateHasHints();
                     int newItemCount = viewPages[a].dialogsAdapter.getItemCount();
-                    if (newItemCount > oldItemCount && initialDialogsType != 11 && initialDialogsType != 12 && initialDialogsType != 13) {
-                        viewPages[a].recyclerItemsEnterAnimator.showItemsAnimated(oldItemCount);
+                    if (newItemCount == 1 && oldItemCount == 1 && viewPages[a].dialogsAdapter.getItemViewType(0) == 5) {
+                        if (viewPages[a].dialogsAdapter.lastDialogsEmptyType != viewPages[a].dialogsAdapter.dialogsEmptyType()) {
+                            viewPages[a].dialogsAdapter.notifyItemChanged(0);
+                        }
+                    } else {
+                        viewPages[a].dialogsAdapter.notifyDataSetChanged();
+                        if (newItemCount > oldItemCount && initialDialogsType != 11 && initialDialogsType != 12 && initialDialogsType != 13) {
+                            viewPages[a].recyclerItemsEnterAnimator.showItemsAnimated(oldItemCount);
+                        }
                     }
                 } else {
                     updateVisibleRows(MessagesController.UPDATE_MASK_NEW_MESSAGE);
@@ -6415,6 +6555,8 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
             if (filterTabsView != null && filterTabsView.getVisibility() == View.VISIBLE) {
                 filterTabsView.notifyTabCounterChanged(Integer.MAX_VALUE);
             }
+        } else if (id == NotificationCenter.dialogsUnreadReactionsCounterChanged) {
+            updateVisibleRows(0);
         } else if (id == NotificationCenter.emojiLoaded) {
             updateVisibleRows(0);
             if (filterTabsView != null) {
@@ -6875,6 +7017,9 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
     public void setDelegate(DialogsActivityDelegate dialogsActivityDelegate) {
         delegate = dialogsActivityDelegate;
     }
+    public boolean shouldShowNextButton(DialogsActivity fragment, ArrayList<Long> dids, CharSequence message, boolean param) {
+        return false;
+    }
 
     public void setSearchString(String string) {
         searchString = string;
@@ -7037,6 +7182,87 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
 
     public RLottieImageView getFloatingButton() {
         return floatingButton;
+    }
+
+
+    private ActionBarPopupWindow sendPopupWindow;
+    private boolean onSendLongClick(View view) {
+        final Activity parentActivity = getParentActivity();
+        final Theme.ResourcesProvider resourcesProvider = getResourceProvider();
+        if (parentActivity == null) {
+            return false;
+        }
+        LinearLayout layout = new LinearLayout(parentActivity);
+        layout.setOrientation(LinearLayout.VERTICAL);
+
+        ActionBarPopupWindow.ActionBarPopupWindowLayout sendPopupLayout2 = new ActionBarPopupWindow.ActionBarPopupWindowLayout(parentActivity, resourcesProvider);
+        sendPopupLayout2.setAnimationEnabled(false);
+        sendPopupLayout2.setOnTouchListener(new View.OnTouchListener() {
+            private android.graphics.Rect popupRect = new android.graphics.Rect();
+
+            @Override
+            public boolean onTouch(View v, MotionEvent event) {
+                if (event.getActionMasked() == MotionEvent.ACTION_DOWN) {
+                    if (sendPopupWindow != null && sendPopupWindow.isShowing()) {
+                        v.getHitRect(popupRect);
+                        if (!popupRect.contains((int) event.getX(), (int) event.getY())) {
+                            sendPopupWindow.dismiss();
+                        }
+                    }
+                }
+                return false;
+            }
+        });
+        sendPopupLayout2.setDispatchKeyEventListener(keyEvent -> {
+            if (keyEvent.getKeyCode() == KeyEvent.KEYCODE_BACK && keyEvent.getRepeatCount() == 0 && sendPopupWindow != null && sendPopupWindow.isShowing()) {
+                sendPopupWindow.dismiss();
+            }
+        });
+        sendPopupLayout2.setShownFromBotton(false);
+        sendPopupLayout2.setupRadialSelectors(getThemedColor(Theme.key_dialogButtonSelector));
+
+        ActionBarMenuSubItem sendWithoutSound = new ActionBarMenuSubItem(parentActivity, true, true, resourcesProvider);
+        sendWithoutSound.setTextAndIcon(LocaleController.getString("SendWithoutSound", R.string.SendWithoutSound), R.drawable.input_notify_off);
+        sendWithoutSound.setMinimumWidth(AndroidUtilities.dp(196));
+        sendPopupLayout2.addView(sendWithoutSound, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, 48));
+        sendWithoutSound.setOnClickListener(v -> {
+            if (sendPopupWindow != null && sendPopupWindow.isShowing()) {
+                sendPopupWindow.dismiss();
+            }
+            this.notify = false;
+            if (delegate == null || selectedDialogs.isEmpty()) {
+                return;
+            }
+            delegate.didSelectDialogs(DialogsActivity.this, selectedDialogs, commentView.getFieldText(), false);
+        });
+
+        layout.addView(sendPopupLayout2, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT));
+
+        sendPopupWindow = new ActionBarPopupWindow(layout, LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT);
+        sendPopupWindow.setAnimationEnabled(false);
+        sendPopupWindow.setAnimationStyle(R.style.PopupContextAnimation2);
+        sendPopupWindow.setOutsideTouchable(true);
+        sendPopupWindow.setClippingEnabled(true);
+        sendPopupWindow.setInputMethodMode(ActionBarPopupWindow.INPUT_METHOD_NOT_NEEDED);
+        sendPopupWindow.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_UNSPECIFIED);
+        sendPopupWindow.getContentView().setFocusableInTouchMode(true);
+        SharedConfig.removeScheduledOrNoSuoundHint();
+
+        layout.measure(View.MeasureSpec.makeMeasureSpec(AndroidUtilities.dp(1000), View.MeasureSpec.AT_MOST), View.MeasureSpec.makeMeasureSpec(AndroidUtilities.dp(1000), View.MeasureSpec.AT_MOST));
+        sendPopupWindow.setFocusable(true);
+        int[] location = new int[2];
+        view.getLocationInWindow(location);
+        int y;
+//        if (keyboardVisible && parentFragment.contentView.getMeasuredHeight() > AndroidUtilities.dp(58)) {
+//            y = location[1] + view.getMeasuredHeight();
+//        } else {
+            y = location[1] - layout.getMeasuredHeight() - AndroidUtilities.dp(2);
+//        }
+        sendPopupWindow.showAtLocation(view, Gravity.LEFT | Gravity.TOP, location[0] + view.getMeasuredWidth() - layout.getMeasuredWidth() + AndroidUtilities.dp(8), y);
+        sendPopupWindow.dimBehind();
+        view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP, HapticFeedbackConstants.FLAG_IGNORE_GLOBAL_SETTING);
+
+        return false;
     }
 
     @Override
@@ -7508,7 +7734,7 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
             arrayList.add(new ThemeDescription(commentView, ThemeDescription.FLAG_TEXTCOLOR, new Class[]{ChatActivityEnterView.class}, new String[]{"messageEditText"}, null, null, null, Theme.key_chat_messagePanelText));
             arrayList.add(new ThemeDescription(commentView, ThemeDescription.FLAG_CURSORCOLOR, new Class[]{ChatActivityEnterView.class}, new String[]{"messageEditText"}, null, null, null, Theme.key_chat_messagePanelCursor));
             arrayList.add(new ThemeDescription(commentView, ThemeDescription.FLAG_HINTTEXTCOLOR, new Class[]{ChatActivityEnterView.class}, new String[]{"messageEditText"}, null, null, null, Theme.key_chat_messagePanelHint));
-            arrayList.add(new ThemeDescription(commentView, ThemeDescription.FLAG_IMAGECOLOR, new Class[]{ChatActivityEnterView.class}, new String[]{"sendButton"}, null, null, null, Theme.key_chat_messagePanelSend));
+//            arrayList.add(new ThemeDescription(commentView, ThemeDescription.FLAG_IMAGECOLOR, new Class[]{ChatActivityEnterView.class}, new String[]{"sendButton"}, null, null, null, Theme.key_chat_messagePanelSend));
         }
 
         arrayList.add(new ThemeDescription(null, 0, null, null, null, cellDelegate, Theme.key_actionBarTipBackground));
