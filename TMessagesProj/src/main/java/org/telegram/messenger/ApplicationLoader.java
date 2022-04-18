@@ -95,7 +95,7 @@ public class ApplicationLoader extends Application {
     }
 
     public static void postInitApplication() {
-        if (applicationInited) {
+        if (applicationInited || applicationContext == null) {
             return;
         }
         applicationInited = true;
@@ -150,6 +150,7 @@ public class ApplicationLoader extends Application {
         }
 
         SharedConfig.loadConfig();
+        SharedPrefsHelper.init(applicationContext);
         for (int a = 0; a < UserConfig.MAX_ACCOUNT_COUNT; a++) { //TODO improve account
             UserConfig.getInstance(a).loadConfig();
             MessagesController.getInstance(a);

@@ -83,7 +83,6 @@ import org.telegram.ui.PhotoViewer;
 import java.io.File;
 import java.io.FileDescriptor;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -232,6 +231,33 @@ public class MediaController implements AudioManager.OnAudioFocusChangeListener,
         public float lockedAspectRatio;
 
         public boolean initied;
+
+        @Override
+        public CropState clone() {
+            CropState cloned = new CropState();
+
+            cloned.cropPx = this.cropPx;
+            cloned.cropPy = this.cropPy;
+            cloned.cropScale = this.cropScale;
+            cloned.cropRotate = this.cropRotate;
+            cloned.cropPw = this.cropPw;
+            cloned.cropPh = this.cropPh;
+            cloned.transformWidth = this.transformWidth;
+            cloned.transformHeight = this.transformHeight;
+            cloned.transformRotation = this.transformRotation;
+            cloned.mirrored = this.mirrored;
+
+            cloned.stateScale = this.stateScale;
+            cloned.scale = this.scale;
+            cloned.matrix = this.matrix;
+            cloned.width = this.width;
+            cloned.height = this.height;
+            cloned.freeform = this.freeform;
+            cloned.lockedAspectRatio = this.lockedAspectRatio;
+
+            cloned.initied = this.initied;
+            return cloned;
+        }
     }
 
     public static class MediaEditState {
@@ -4083,7 +4109,7 @@ public class MediaController implements AudioManager.OnAudioFocusChangeListener,
         try {
             int selectedType = type;
             ContentValues contentValues = new ContentValues();
-            String extension = MimeTypeMap.getFileExtensionFromUrl(sourceFile.getAbsolutePath());
+            String extension = FileLoader.getFileExtension(sourceFile);
             String mimeType = null;
             if (extension != null) {
                 mimeType = MimeTypeMap.getSingleton().getMimeTypeFromExtension(extension);
@@ -4822,14 +4848,18 @@ public class MediaController implements AudioManager.OnAudioFocusChangeListener,
 
         if (framerate == 0) {
             framerate = 25;
-        }/* else if (framerate > 59) {
+        } else if (framerate > 59) {
             framerate = 59;
-        }*/
+        }
 
         if (rotationValue == 90 || rotationValue == 270) {
             int temp = resultHeight;
             resultHeight = resultWidth;
             resultWidth = temp;
+        }
+
+        if (framerate > 40 && (Math.min(resultHeight, resultWidth) <= 480)) {
+            framerate = 30;
         }
 
         boolean needCompress = avatarStartTime != -1 || info.cropState != null || info.mediaEntities != null || info.paintPath != null || info.filterState != null ||
@@ -4925,12 +4955,12 @@ public class MediaController implements AudioManager.OnAudioFocusChangeListener,
             compressFactor = 1f;
             minCompressFactor = 1f;
         } else if (Math.min(height, width) >= 720) {
-            maxBitrate = 3200_000;
+            maxBitrate = 2600_000;
             compressFactor = 1f;
             minCompressFactor = 1f;
         } else if (Math.min(height, width) >= 480) {
             maxBitrate = 1000_000;
-            compressFactor = 0.8f;
+            compressFactor = 0.75f;
             minCompressFactor = 0.9f;
         } else {
             maxBitrate = 750_000;

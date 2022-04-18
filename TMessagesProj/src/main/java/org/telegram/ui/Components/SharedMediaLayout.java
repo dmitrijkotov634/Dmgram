@@ -464,7 +464,7 @@ public class SharedMediaLayout extends FrameLayout implements NotificationCenter
     private ArrayList<SharedPhotoVideoCell> cache = new ArrayList<>(10);
     private ArrayList<SharedAudioCell> audioCellCache = new ArrayList<>(10);
     private ArrayList<SharedAudioCell> audioCache = new ArrayList<>(10);
-    public ScrollSlidingTextTabStrip scrollSlidingTextTabStrip;
+    private ScrollSlidingTextTabStripInner scrollSlidingTextTabStrip;
     private View shadowLine;
     private ChatActionCell floatingDateView;
     private AnimatorSet floatingDateAnimation;
@@ -2624,6 +2624,12 @@ public class SharedMediaLayout extends FrameLayout implements NotificationCenter
 
     @Override
     protected void dispatchDraw(Canvas canvas) {
+        if (scrollSlidingTextTabStrip != null) {
+            canvas.save();
+            canvas.translate(scrollSlidingTextTabStrip.getX(), scrollSlidingTextTabStrip.getY());
+            scrollSlidingTextTabStrip.drawBackground(canvas);
+            canvas.restore();
+        }
         super.dispatchDraw(canvas);
         if (fragmentContextView != null && fragmentContextView.isCallStyle()) {
             canvas.save();
@@ -2635,31 +2641,8 @@ public class SharedMediaLayout extends FrameLayout implements NotificationCenter
         }
     }
 
-    private ScrollSlidingTextTabStrip createScrollingTextTabStrip(Context context) {
-        ScrollSlidingTextTabStrip scrollSlidingTextTabStrip = new ScrollSlidingTextTabStrip(context) {
-
-            protected Paint backgroundPaint;
-            public int backgroundColor = Color.TRANSPARENT;
-
-            @Override
-            protected void dispatchDraw(Canvas canvas) {
-                if (SharedConfig.chatBlurEnabled() && backgroundColor != Color.TRANSPARENT) {
-                    if (backgroundPaint == null) {
-                        backgroundPaint = new Paint();
-                    }
-                    backgroundPaint.setColor(backgroundColor);
-                    AndroidUtilities.rectTmp2.set(0, 0, getMeasuredWidth(), getMeasuredHeight());
-                    drawBackgroundWithBlur(canvas, getY(), AndroidUtilities.rectTmp2, backgroundPaint);
-                }
-                super.dispatchDraw(canvas);
-            }
-
-            @Override
-            public void setBackgroundColor(int color) {
-                backgroundColor = color;
-                invalidate();
-            }
-        };
+    private ScrollSlidingTextTabStripInner createScrollingTextTabStrip(Context context) {
+        ScrollSlidingTextTabStripInner scrollSlidingTextTabStrip = new ScrollSlidingTextTabStripInner(context);
         if (initialTab != -1) {
             scrollSlidingTextTabStrip.setInitialTabId(initialTab);
             initialTab = -1;
@@ -3990,10 +3973,12 @@ public class SharedMediaLayout extends FrameLayout implements NotificationCenter
                     if (child instanceof SharedDocumentCell) {
                         SharedDocumentCell cell = (SharedDocumentCell) child;
                         messageId = cell.getMessage().getId();
+                        offset = cell.getTop();
                     }
                     if (child instanceof SharedAudioCell) {
                         SharedAudioCell cell = (SharedAudioCell) child;
                         messageId = cell.getMessage().getId();
+                        offset = cell.getTop();
                     }
                     if (messageId != 0) {
                         break;
@@ -5135,8 +5120,9 @@ public class SharedMediaLayout extends FrameLayout implements NotificationCenter
         public void getPositionForScrollProgress(RecyclerListView listView, float progress, int[] position) {
             int viewHeight = listView.getChildAt(0).getMeasuredHeight();
             int totalHeight = (int) getTotalItemsCount() * viewHeight;
-            position[0] = (int) ((progress * (totalHeight - listView.getMeasuredHeight())) / viewHeight);
-            position[1] = (int) (progress * (totalHeight - listView.getMeasuredHeight())) % viewHeight;
+            int listViewHeight = listView.getMeasuredHeight() - listView.getPaddingTop();
+            position[0] = (int) ((progress * (totalHeight - listViewHeight)) / viewHeight);
+            position[1] = (int) (progress * (totalHeight - listViewHeight)) % viewHeight;
         }
 
         @Override
@@ -5419,8 +5405,9 @@ public class SharedMediaLayout extends FrameLayout implements NotificationCenter
         public void getPositionForScrollProgress(RecyclerListView listView, float progress, int[] position) {
             int viewHeight = listView.getChildAt(0).getMeasuredHeight();
             int totalHeight = (int) (Math.ceil(getTotalItemsCount() / (float) mediaColumnsCount) * viewHeight);
-            position[0] = (int) ((progress * (totalHeight - listView.getMeasuredHeight())) / viewHeight) * mediaColumnsCount;
-            position[1] = (int) (progress * (totalHeight - listView.getMeasuredHeight())) % viewHeight;
+            int listHeight =  listView.getMeasuredHeight() - listView.getPaddingTop();
+            position[0] = (int) ((progress * (totalHeight -listHeight)) / viewHeight) * mediaColumnsCount;
+            position[1] = (int) (progress * (totalHeight - listHeight)) % viewHeight;
         }
 
         @Override
@@ -5473,8 +5460,10 @@ public class SharedMediaLayout extends FrameLayout implements NotificationCenter
             if (firstPosition < 0) {
                 return 0;
             }
-            float scrollY = (firstPosition / parentCount) * cellHeight - firstChild.getTop();
-            return scrollY / (((float) cellCount) * cellHeight - listView.getMeasuredHeight());
+            float childTop = firstChild.getTop() - listView.getPaddingTop();
+            float listH = listView.getMeasuredHeight() - listView.getPaddingTop();
+            float scrollY = (firstPosition / parentCount) * cellHeight - childTop;
+            return scrollY / (((float) cellCount) * cellHeight - listH);
         }
 
         public boolean fastScrollIsVisible(RecyclerListView listView) {
@@ -6590,6 +6579,34 @@ public class SharedMediaLayout extends FrameLayout implements NotificationCenter
         }
 
         return newColumnsCount;
+    }
+
+    private class ScrollSlidingTextTabStripInner extends ScrollSlidingTextTabStrip {
+
+        protected Paint backgroundPaint;
+        public int backgroundColor = Color.TRANSPARENT;
+
+
+        public ScrollSlidingTextTabStripInner(Context context) {
+            super(context);
+        }
+
+        protected void drawBackground(Canvas canvas) {
+            if (SharedConfig.chatBlurEnabled() && backgroundColor != Color.TRANSPARENT) {
+                if (backgroundPaint == null) {
+                    backgroundPaint = new Paint();
+                }
+                backgroundPaint.setColor(backgroundColor);
+                AndroidUtilities.rectTmp2.set(0, 0, getMeasuredWidth(), getMeasuredHeight());
+                drawBackgroundWithBlur(canvas, getY(), AndroidUtilities.rectTmp2, backgroundPaint);
+            }
+        }
+
+        @Override
+        public void setBackgroundColor(int color) {
+            backgroundColor = color;
+            invalidate();
+        }
     }
 
     public interface Delegate {

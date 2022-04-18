@@ -623,7 +623,7 @@ public abstract class BaseFragment {
         return getAccountInstance().getSecretChatHelper();
     }
 
-    protected DownloadController getDownloadController() {
+    public DownloadController getDownloadController() {
         return getAccountInstance().getDownloadController();
     }
 
@@ -772,10 +772,14 @@ public abstract class BaseFragment {
         }
         Theme.ResourcesProvider resourcesProvider = getResourceProvider();
         int color;
+        String key = Theme.key_actionBarDefault;
+        if (actionBar != null && actionBar.isActionModeShowed()) {
+            key = Theme.key_actionBarActionModeDefault;
+        }
         if (resourcesProvider != null) {
-            color = resourcesProvider.getColorOrDefault(Theme.key_actionBarDefault);
+            color = resourcesProvider.getColorOrDefault(key);
         } else {
-            color = Theme.getColor(Theme.key_actionBarDefault, null, true);
+            color = Theme.getColor(key, null, true);
         }
         return ColorUtils.calculateLuminance(color) > 0.7f;
     }

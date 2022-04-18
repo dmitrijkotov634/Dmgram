@@ -448,9 +448,15 @@ public class EmojiView extends FrameLayout implements NotificationCenter.Notific
     @Override
     public void setEnabled(boolean enabled) {
         super.setEnabled(enabled);
-        stickersSearchField.searchEditText.setEnabled(enabled);
-        gifSearchField.searchEditText.setEnabled(enabled);
-        emojiSearchField.searchEditText.setEnabled(enabled);
+        if (stickersSearchField != null) {
+            stickersSearchField.searchEditText.setEnabled(enabled);
+        }
+        if (gifSearchField != null) {
+            gifSearchField.searchEditText.setEnabled(enabled);
+        }
+        if (emojiSearchField != null) {
+            emojiSearchField.searchEditText.setEnabled(enabled);
+        }
     }
 
     private class SearchField extends FrameLayout {
@@ -489,12 +495,16 @@ public class EmojiView extends FrameLayout implements NotificationCenter.Notific
 
             clearSearchImageView = new ImageView(context);
             clearSearchImageView.setScaleType(ImageView.ScaleType.CENTER);
-            clearSearchImageView.setImageDrawable(progressDrawable = new CloseProgressDrawable2());
+            clearSearchImageView.setImageDrawable(progressDrawable = new CloseProgressDrawable2() {
+                @Override
+                protected int getCurrentColor() {
+                    return getThemedColor(Theme.key_chat_emojiSearchIcon);
+                }
+            });
             progressDrawable.setSide(AndroidUtilities.dp(7));
             clearSearchImageView.setScaleX(0.1f);
             clearSearchImageView.setScaleY(0.1f);
             clearSearchImageView.setAlpha(0.0f);
-            clearSearchImageView.setColorFilter(new PorterDuffColorFilter(getThemedColor(Theme.key_chat_emojiSearchIcon), PorterDuff.Mode.MULTIPLY));
             addView(clearSearchImageView, LayoutHelper.createFrame(36, 36, Gravity.RIGHT | Gravity.TOP, 14, 14, 14, 0));
             clearSearchImageView.setOnClickListener(v -> {
                 searchEditText.setText("");

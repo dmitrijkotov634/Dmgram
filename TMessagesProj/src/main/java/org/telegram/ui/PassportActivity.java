@@ -6835,7 +6835,7 @@ public class PassportActivity extends BaseFragment implements NotificationCenter
                     }
                     if (button == 8 || button == 7) {
                         if (button != 8) {
-                            chatAttachAlert.dismiss();
+                            chatAttachAlert.dismiss(true);
                         }
                         HashMap<Object, Object> selectedPhotos = chatAttachAlert.getPhotoLayout().getSelectedPhotos();
                         ArrayList<Object> selectedPhotosOrder = chatAttachAlert.getPhotoLayout().getSelectedPhotosOrder();
@@ -6862,29 +6862,10 @@ public class PassportActivity extends BaseFragment implements NotificationCenter
                 }
 
                 @Override
-                public View getRevealView() {
-                    return null;
-                }
-
-                @Override
-                public void didSelectBot(TLRPC.User user) {
-
-                }
-
-                @Override
                 public void onCameraOpened() {
                     AndroidUtilities.hideKeyboard(fragmentView.findFocus());
                 }
 
-                @Override
-                public boolean needEnterComment() {
-                    return false;
-                }
-
-                @Override
-                public void doOnIdle(Runnable runnable) {
-                    runnable.run();
-                }
             });
         }
     }

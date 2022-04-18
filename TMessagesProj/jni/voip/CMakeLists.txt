@@ -453,6 +453,14 @@ add_library(tgcalls STATIC
         voip/tgcalls/group/AVIOContextImpl.cpp
         voip/tgcalls/group/StreamingMediaContext.cpp
         voip/tgcalls/group/VideoStreamingPart.cpp
+        voip/tgcalls/v2/InstanceV2Impl.cpp
+        voip/tgcalls/v2/NativeNetworkingImpl.cpp
+        voip/tgcalls/v2/Signaling.cpp
+        voip/tgcalls/v2/SignalingEncryption.cpp
+        voip/tgcalls/v2/ContentNegotiation.cpp
+        voip/tgcalls/v2/InstanceV2ReferenceImpl.cpp
+        voip/tgcalls/v2_4_0_0/InstanceV2_4_0_0Impl.cpp
+        voip/tgcalls/v2_4_0_0/Signaling_4_0_0.cpp
         voip/webrtc/rtc_base/bitstream_reader.cc
         voip/webrtc/rtc_base/async_invoker.cc
         voip/webrtc/rtc_base/system_time.cc

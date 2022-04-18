@@ -82,13 +82,10 @@ public class MessagesStorage extends BaseController {
     private CountDownLatch openSync = new CountDownLatch(1);
 
     private static volatile MessagesStorage[] Instance = new MessagesStorage[UserConfig.MAX_ACCOUNT_COUNT];
-    private final static int LAST_DB_VERSION = 92;
+    private final static int LAST_DB_VERSION = 93;
     private boolean databaseMigrationInProgress;
     public boolean showClearDatabaseAlert;
 
-    public ArrayList<MessageObject> downloadingFiles = new ArrayList<>();
-    public ArrayList<MessageObject> recentDownloadingFiles = new ArrayList<>();
-    public SparseArray<MessageObject> unviewedDownloads = new SparseArray<>();
 
     public static MessagesStorage getInstance(int num) {
         MessagesStorage localInstance = Instance[num];
@@ -397,6 +394,8 @@ public class MessagesStorage extends BaseController {
                 database.executeFast("CREATE INDEX IF NOT EXISTS reaction_mentions_did ON reaction_mentions(dialog_id);").stepThis().dispose();
 
                 database.executeFast("CREATE TABLE downloading_documents(data BLOB, hash INTEGER, id INTEGER, state INTEGER, date INTEGER, PRIMARY KEY(hash, id));").stepThis().dispose();
+
+                database.executeFast("CREATE TABLE attach_menu_bots(data BLOB, hash INTEGER, date INTEGER);").stepThis().dispose();
                 //version
                 database.executeFast("PRAGMA user_version = " + LAST_DB_VERSION).stepThis().dispose();
             } else {
@@ -1563,6 +1562,11 @@ public class MessagesStorage extends BaseController {
             version = 92;
         }
 
+        if (version == 92) {
+            database.executeFast("CREATE TABLE IF NOT EXISTS attach_menu_bots(data BLOB, hash INTEGER, date INTEGER);").stepThis().dispose();
+            database.executeFast("PRAGMA user_version = 93").stepThis().dispose();
+        }
+
         FileLog.d("MessagesStorage db migration finished");
         AndroidUtilities.runOnUIThread(() -> {
             databaseMigrationInProgress = false;
@@ -2084,6 +2088,7 @@ public class MessagesStorage extends BaseController {
 
                 database.executeFast("DELETE FROM reaction_mentions").stepThis().dispose();
                 database.executeFast("DELETE FROM downloading_documents").stepThis().dispose();
+                database.executeFast("DELETE FROM attach_menu_bots").stepThis().dispose();
 
                 SQLiteCursor cursor = database.queryFinalized("SELECT did FROM dialogs WHERE 1");
                 StringBuilder ids = new StringBuilder();
@@ -2159,264 +2164,13 @@ public class MessagesStorage extends BaseController {
             } finally {
                 AndroidUtilities.runOnUIThread(() -> {
                     NotificationCenter.getInstance(currentAccount).postNotificationName(NotificationCenter.didClearDatabase);
+                    getMediaDataController().loadAttachMenuBots(false, true);
                 });
             }
         });
     }
 
-    public void startDownloadFile(TLRPC.Document document, MessageObject parentObject) {
-        AndroidUtilities.runOnUIThread(() -> {
-            boolean contains = false;
 
-            for (int i = 0; i < recentDownloadingFiles.size(); i++) {
-                if (recentDownloadingFiles.get(i).getDocument().id == parentObject.getDocument().id) {
-                    recentDownloadingFiles.remove(i);
-                    break;
-                }
-            }
-
-            for (int i = 0; i < downloadingFiles.size(); i++) {
-                if (downloadingFiles.get(i).getDocument().id == parentObject.getDocument().id) {
-                    contains = true;
-                    break;
-                }
-            }
-            if (!contains) {
-                downloadingFiles.add(parentObject);
-            }
-            getNotificationCenter().postNotificationName(NotificationCenter.onDownloadingFilesChanged);
-        });
-        storageQueue.postRunnable(() -> {
-            NativeByteBuffer data = null;
-            try {
-                data = new NativeByteBuffer(parentObject.messageOwner.getObjectSize());
-                parentObject.messageOwner.serializeToStream(data);
-
-                SQLitePreparedStatement state = database.executeFast("REPLACE INTO downloading_documents VALUES(?, ?, ?, ?, ?)");
-                state.bindByteBuffer(1, data);
-                state.bindInteger(2, parentObject.getDocument().dc_id);
-                state.bindLong(3, parentObject.getDocument().id);
-                state.bindLong(4, System.currentTimeMillis());
-                state.bindInteger(4, 0);
-
-                state.step();
-                state.dispose();
-                data.reuse();
-            } catch (Exception e) {
-                FileLog.e(e);
-            }
-        });
-    }
-
-    public void onDownloadComplete(MessageObject parentObject) {
-        AndroidUtilities.runOnUIThread(() -> {
-            boolean removed = false;
-            for (int i = 0; i < downloadingFiles.size(); i++) {
-                if (downloadingFiles.get(i).getDocument().id == parentObject.getDocument().id) {
-                    downloadingFiles.remove(i);
-                    removed = true;
-                    break;
-                }
-            }
-
-            if (removed) {
-                boolean contains = false;
-                for (int i = 0; i < recentDownloadingFiles.size(); i++) {
-                    if (recentDownloadingFiles.get(i).getDocument().id == parentObject.getDocument().id) {
-                        contains = true;
-                        break;
-                    }
-                }
-                if (!contains) {
-                    recentDownloadingFiles.add(0, parentObject);
-                    putToUnviewedDownloads(parentObject);
-                }
-                getNotificationCenter().postNotificationName(NotificationCenter.onDownloadingFilesChanged);
-            }
-        });
-
-        storageQueue.postRunnable(() -> {
-            try {
-                NativeByteBuffer data = new NativeByteBuffer(parentObject.messageOwner.getObjectSize());
-                parentObject.messageOwner.serializeToStream(data);
-
-                SQLitePreparedStatement state = database.executeFast("UPDATE downloading_documents SET state = 1, date = ? WHERE hash = ? AND id = ?");
-                state.bindLong(1, System.currentTimeMillis());
-                state.bindInteger(2, parentObject.getDocument().dc_id);
-                state.bindLong(3, parentObject.getDocument().id);
-                state.step();
-                state.dispose();
-                data.reuse();
-
-
-                SQLiteCursor cursor = database.queryFinalized("SELECT COUNT(*) FROM downloading_documents WHERE state = 1");
-                int count = 0;
-                if (cursor.next()) {
-                    count = cursor.intValue(0);
-                }
-
-                cursor.dispose();
-                int limitDownloadsDocuments = 100;
-                if (count > limitDownloadsDocuments) {
-                    cursor = database.queryFinalized("SELECT hash, id FROM downloading_documents WHERE state = 1 ORDER BY date ASC LIMIT " + (limitDownloadsDocuments - count));
-                    ArrayList<DownloadingDocumentEntry> entriesToRemove = new ArrayList<>();
-                    while (cursor.next()) {
-                        DownloadingDocumentEntry entry = new DownloadingDocumentEntry();
-                        entry.hash = cursor.intValue(0);
-                        entry.id = cursor.longValue(1);
-                        entriesToRemove.add(entry);
-                    }
-                    cursor.dispose();
-                    
-                    state = database.executeFast("DELETE FROM downloading_documents WHERE hash = ? AND id = ?");
-                    for (int i = 0; i < entriesToRemove.size(); i++) {
-                        state.bindInteger(1, entriesToRemove.get(i).hash);
-                        state.bindLong(2, entriesToRemove.get(i).id);
-                        state.step();
-                    }
-                    state.dispose();
-                }
-            } catch (Exception e) {
-                FileLog.e(e);
-            }
-        });
-    }
-
-    Runnable clearUnviewedDownloadsRunnbale = new Runnable() {
-        @Override
-        public void run() {
-            clearUnviewedDownloads();
-            getNotificationCenter().postNotificationName(NotificationCenter.onDownloadingFilesChanged);
-        }
-    };
-    private void putToUnviewedDownloads(MessageObject parentObject) {
-        unviewedDownloads.put(parentObject.getId(), parentObject);
-        AndroidUtilities.cancelRunOnUIThread(clearUnviewedDownloadsRunnbale);
-        AndroidUtilities.runOnUIThread(clearUnviewedDownloadsRunnbale, 60000);
-    }
-
-    public void clearUnviewedDownloads() {
-        unviewedDownloads.clear();
-    }
-
-    public void checkUnviewedDownloads(int messageId, long dialogId) {
-        MessageObject messageObject = unviewedDownloads.get(messageId);
-        if (messageObject != null && messageObject.getDialogId() == dialogId) {
-            unviewedDownloads.remove(messageId);
-            if (unviewedDownloads.size() == 0) {
-                getNotificationCenter().postNotificationName(NotificationCenter.onDownloadingFilesChanged);
-            }
-        }
-    }
-
-    public boolean hasUnviewedDownloads() {
-        return unviewedDownloads.size() > 0;
-    }
-
-    private class DownloadingDocumentEntry {
-        long id;
-        int hash;
-    }
-
-    public void loadDownloadingFiles() {
-        storageQueue.postRunnable(() -> {
-
-            ArrayList<MessageObject> downloadingMessages = new ArrayList<>();
-            ArrayList<MessageObject> recentlyDownloadedMessages = new ArrayList<>();
-
-            try {
-                SQLiteCursor cursor2 = database.queryFinalized("SELECT data, state FROM downloading_documents ORDER BY date DESC");
-                while (cursor2.next()) {
-                    NativeByteBuffer data = cursor2.byteBufferValue(0);
-                    int state = cursor2.intValue(1);
-                    if (data != null) {
-                        TLRPC.Message message = TLRPC.Message.TLdeserialize(data, data.readInt32(false), false);
-                        if (message != null) {
-                            message.readAttachPath(data, UserConfig.getInstance(currentAccount).clientUserId);
-                            MessageObject messageObject = new MessageObject(currentAccount, message, false, true);
-                            if (state == 0) {
-                                downloadingMessages.add(messageObject);
-                            } else if (messageObject.mediaExists) {
-                                recentlyDownloadedMessages.add(messageObject);
-                            }
-                        }
-                        data.reuse();
-                    }
-                }
-                cursor2.dispose();
-            } catch (Exception e) {
-                FileLog.e(e);
-            }
-
-            AndroidUtilities.runOnUIThread(() -> {
-                downloadingFiles.clear();
-                downloadingFiles.addAll(downloadingMessages);
-
-                recentDownloadingFiles.clear();
-                recentDownloadingFiles.addAll(recentlyDownloadedMessages);
-            });
-        });
-    }
-
-    public void clearRecentDownloadedFiles() {
-        recentDownloadingFiles.clear();
-        getNotificationCenter().postNotificationName(NotificationCenter.onDownloadingFilesChanged);
-
-        storageQueue.postRunnable(() -> {
-            try {
-                database.executeFast("DELETE FROM downloading_documents WHERE state = 1").stepThis().dispose();
-            } catch (Exception e) {
-                FileLog.e(e);
-            }
-        });
-    }
-
-    public void deleteRecentFiles(ArrayList<MessageObject> messageObjects) {
-        for (int i = 0; i < messageObjects.size(); i++) {
-            boolean found = false;
-            for (int j = 0; j < recentDownloadingFiles.size(); j++) {
-                if (messageObjects.get(i).getId() == recentDownloadingFiles.get(j).getId()) {
-                    recentDownloadingFiles.remove(j);
-                    found = true;
-                    break;
-                }
-            }
-            if (!found) {
-                for (int j = 0; j < downloadingFiles.size(); j++) {
-                    if (messageObjects.get(i).getId() == downloadingFiles.get(j).getId()) {
-                        downloadingFiles.remove(j);
-                        found = true;
-                        break;
-                    }
-                }
-            }
-            messageObjects.get(i).putInDownloadsStore = false;
-            FileLoader.getInstance(currentAccount).loadFile(messageObjects.get(i).getDocument(), messageObjects.get(i), 0, 0);
-            FileLoader.getInstance(currentAccount).cancelLoadFile(messageObjects.get(i).getDocument(), true);
-        }
-        getNotificationCenter().postNotificationName(NotificationCenter.onDownloadingFilesChanged);
-        storageQueue.postRunnable(() -> {
-            try {
-                SQLitePreparedStatement state = database.executeFast("DELETE FROM downloading_documents WHERE hash = ? AND id = ?");
-                for (int i = 0; i < messageObjects.size(); i++) {
-                    state.bindInteger(1, messageObjects.get(i).getDocument().dc_id);
-                    state.bindLong(2, messageObjects.get(i).getDocument().id);
-                    state.step();
-
-                    try {
-                        File file = FileLoader.getPathToMessage(messageObjects.get(i).messageOwner);
-                        file.delete();
-                    } catch (Exception e) {
-                        FileLog.e(e);
-                    }
-                }
-                state.dispose();
-            } catch (Exception e) {
-                FileLog.e(e);
-            }
-        });
-
-    }
 
     private static class ReadDialog {
         public int lastMid;
@@ -3609,7 +3363,7 @@ public class MessagesStorage extends BaseController {
         arrayList.add(message);
     }
 
-    protected void loadReplyMessages(LongSparseArray<SparseArray<ArrayList<TLRPC.Message>>> replyMessageOwners, LongSparseArray<ArrayList<Integer>> dialogReplyMessagesIds, ArrayList<Long> usersToLoad, ArrayList<Long> chatsToLoad) throws SQLiteException {
+    protected void loadReplyMessages(LongSparseArray<SparseArray<ArrayList<TLRPC.Message>>> replyMessageOwners, LongSparseArray<ArrayList<Integer>> dialogReplyMessagesIds, ArrayList<Long> usersToLoad, ArrayList<Long> chatsToLoad, boolean scheduled) throws SQLiteException {
         if (replyMessageOwners.isEmpty()) {
             return;
         }
@@ -3621,7 +3375,12 @@ public class MessagesStorage extends BaseController {
             if (ids == null) {
                 continue;
             }
-            SQLiteCursor cursor = database.queryFinalized(String.format(Locale.US, "SELECT data, mid, date, uid FROM messages_v2 WHERE mid IN(%s) AND uid = %d", TextUtils.join(",", ids), dialogId));
+            SQLiteCursor cursor;
+            if (scheduled) {
+                cursor = database.queryFinalized(String.format(Locale.US, "SELECT data, mid, date, uid FROM scheduled_messages_v2 WHERE mid IN(%s) AND uid = %d", TextUtils.join(",", ids), dialogId));
+            } else {
+                cursor = database.queryFinalized(String.format(Locale.US, "SELECT data, mid, date, uid FROM messages_v2 WHERE mid IN(%s) AND uid = %d", TextUtils.join(",", ids), dialogId));
+            }
             while (cursor.next()) {
                 NativeByteBuffer data = cursor.byteBufferValue(0);
                 if (data != null) {
@@ -3788,7 +3547,7 @@ public class MessagesStorage extends BaseController {
                     }
                     cursor.dispose();
 
-                    loadReplyMessages(replyMessageOwners, dialogReplyMessagesIds, usersToLoad, chatsToLoad);
+                    loadReplyMessages(replyMessageOwners, dialogReplyMessagesIds, usersToLoad, chatsToLoad, false);
 
                     if (!encryptedChatIds.isEmpty()) {
                         getEncryptedChatsInternal(TextUtils.join(",", encryptedChatIds), encryptedChats, usersToLoad);
@@ -7701,7 +7460,7 @@ public class MessagesStorage extends BaseController {
                     }
                 }
             } else {
-                loadReplyMessages(replyMessageOwners, dialogReplyMessagesIds, usersToLoad, chatsToLoad);
+                loadReplyMessages(replyMessageOwners, dialogReplyMessagesIds, usersToLoad, chatsToLoad, scheduled);
             }
             if (!usersToLoad.isEmpty()) {
                 getUsersInternal(TextUtils.join(",", usersToLoad), res.users);
@@ -11795,7 +11554,7 @@ public class MessagesStorage extends BaseController {
                     cursor.dispose();
                 }
 
-                loadReplyMessages(replyMessageOwners, dialogReplyMessagesIds, usersToLoad, chatsToLoad);
+                loadReplyMessages(replyMessageOwners, dialogReplyMessagesIds, usersToLoad, chatsToLoad, false);
 
                 if (draftsDialogIds != null) {
                     ArrayList<Long> unloadedDialogs = new ArrayList<>();
@@ -12817,7 +12576,7 @@ public class MessagesStorage extends BaseController {
         storageQueue.postRunnable(() -> {
             try {
                 SQLitePreparedStatement state = database.executeFast("UPDATE dialogs SET unread_reactions = ? WHERE did = ?");
-                state.bindInteger(1, count);
+                state.bindInteger(1, Math.max(count, 0));
                 state.bindLong(2, dialogId);
                 state.step();
                 state.dispose();

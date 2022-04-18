@@ -6,6 +6,7 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.os.Bundle;
 import android.text.SpannableStringBuilder;
+import android.text.TextUtils;
 import android.view.View;
 import android.widget.FrameLayout;
 import android.widget.TextView;
@@ -185,12 +186,15 @@ public class SearchViewPager extends ViewPagerFixed implements FilteredSearchVie
     }
 
     public void onTextChanged(String text) {
-        lastSearchString = text;
         View view = getCurrentView();
         boolean reset = false;
         if (!attached) {
             reset = true;
         }
+        if (TextUtils.isEmpty(lastSearchString)) {
+            reset = true;
+        }
+        lastSearchString = text;
         search(view, getCurrentPosition(), text, reset);
     }
 
@@ -364,13 +368,13 @@ public class SearchViewPager extends ViewPagerFixed implements FilteredSearchVie
             spannableStringBuilder
                     .append(AndroidUtilities.replaceTags(LocaleController.formatPluralString("RemoveDocumentsMessage", selectedFiles.size())))
                     .append("\n\n")
-                    .append( LocaleController.getString("RemoveDocumentsMessage", R.string.RemoveDocumentsMessage));
+                    .append(LocaleController.getString("RemoveDocumentsAlertMessage", R.string.RemoveDocumentsAlertMessage));
 
             builder.setMessage(spannableStringBuilder);
             builder.setNegativeButton(LocaleController.getString("Cancel", R.string.Cancel), (dialogInterface, i) -> dialogInterface.dismiss());
             builder.setPositiveButton(LocaleController.getString("Delete", R.string.Delete), (dialogInterface, i) -> {
                 dialogInterface.dismiss();
-                parent.getMessagesStorage().deleteRecentFiles(messageObjects);
+                parent.getDownloadController().deleteRecentFiles(messageObjects);
                 hideActionMode();
             });
             AlertDialog alertDialog = builder.show();
@@ -618,6 +622,9 @@ public class SearchViewPager extends ViewPagerFixed implements FilteredSearchVie
     }
 
     public void setPosition(int position) {
+        if (position < 0) {
+            return;
+        }
         super.setPosition(position);
         viewsByType.clear();
         if (tabsView != null) {
@@ -662,28 +669,30 @@ public class SearchViewPager extends ViewPagerFixed implements FilteredSearchVie
         noMediaFiltersSearchView.messagesDeleted(channelId, markAsDeletedMessages);
         if (!selectedFiles.isEmpty()) {
             ArrayList<FilteredSearchView.MessageHashId> toRemove = null;
-            Iterator<FilteredSearchView.MessageHashId> iterator = selectedFiles.keySet().iterator();
-            while (iterator.hasNext()) {
-                FilteredSearchView.MessageHashId hashId = iterator.next();
+            ArrayList<FilteredSearchView.MessageHashId> arrayList = new ArrayList<>(selectedFiles.keySet());
+            for (int k = 0; k < arrayList.size(); k++) {
+                FilteredSearchView.MessageHashId hashId = arrayList.get(k);
                 MessageObject messageObject = selectedFiles.get(hashId);
-                long dialogId = messageObject.getDialogId();
-                int currentChannelId = dialogId < 0 && ChatObject.isChannel((int) -dialogId, currentAccount) ? (int) -dialogId : 0;
-                if (currentChannelId == channelId) {
-                    for (int i = 0; i < markAsDeletedMessages.size(); i++) {
-                        if (messageObject.getId() == markAsDeletedMessages.get(i)) {
-                            toRemove = new ArrayList<>();
-                            toRemove.add(hashId);
+                if (messageObject != null) {
+                    long dialogId = messageObject.getDialogId();
+                    int currentChannelId = dialogId < 0 && ChatObject.isChannel((int) -dialogId, currentAccount) ? (int) -dialogId : 0;
+                    if (currentChannelId == channelId) {
+                        for (int i = 0; i < markAsDeletedMessages.size(); i++) {
+                            if (messageObject.getId() == markAsDeletedMessages.get(i)) {
+                                toRemove = new ArrayList<>();
+                                toRemove.add(hashId);
+                            }
                         }
                     }
                 }
-                if (toRemove != null) {
-                    for (int a = 0, N = toRemove.size(); a < N; a++) {
-                        selectedFiles.remove(toRemove.get(a));
-                    }
-                    selectedMessagesCountTextView.setNumber(selectedFiles.size(), true);
-                    if (gotoItem != null) {
-                        gotoItem.setVisibility(selectedFiles.size() == 1 ? View.VISIBLE : View.GONE);
-                    }
+            }
+            if (toRemove != null) {
+                for (int a = 0, N = toRemove.size(); a < N; a++) {
+                    selectedFiles.remove(toRemove.get(a));
+                }
+                selectedMessagesCountTextView.setNumber(selectedFiles.size(), true);
+                if (gotoItem != null) {
+                    gotoItem.setVisibility(selectedFiles.size() == 1 ? View.VISIBLE : View.GONE);
                 }
             }
         }
@@ -724,6 +733,15 @@ public class SearchViewPager extends ViewPagerFixed implements FilteredSearchVie
 
     public void showDownloads() {
         setPosition(2);
+    }
+
+    public int getPositionForType(int initialSearchType) {
+        for (int i = 0; i < viewPagerAdapter.items.size(); i++) {
+            if (viewPagerAdapter.items.get(i).type == ViewPagerAdapter.FILTER_TYPE &&  viewPagerAdapter.items.get(i).filterIndex == initialSearchType) {
+                return i;
+            }
+        }
+        return -1;
     }
 
     private class ViewPagerAdapter extends ViewPagerFixed.Adapter {
