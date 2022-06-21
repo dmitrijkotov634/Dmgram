@@ -70,9 +70,7 @@ public class FilePathDatabase {
                 createDatabase(true);
                 return;
             }
-            if (BuildVars.DEBUG_VERSION) {
-                throw new RuntimeException(e);
-            }
+            FileLog.e(e);
         }
     }
 
@@ -87,7 +85,7 @@ public class FilePathDatabase {
             AndroidUtilities.copyFile(cacheFile, backupCacheFile);
             FileLog.d("file db backup created " + backupCacheFile.getAbsolutePath());
         } catch (IOException e) {
-            e.printStackTrace();
+            FileLog.e(e);
         }
     }
 
@@ -130,7 +128,7 @@ public class FilePathDatabase {
                     }
                     cursor.dispose();
                 } catch (SQLiteException e) {
-                    throw new RuntimeException(e);
+                    FileLog.e(e);
                 }
                 syncLatch.countDown();
             });
@@ -149,9 +147,7 @@ public class FilePathDatabase {
                 }
                 cursor.dispose();
             } catch (SQLiteException e) {
-                if (BuildVars.DEBUG_VERSION) {
-                    throw new RuntimeException(e);
-                }
+                FileLog.e(e);
             }
             return res;
         }
@@ -173,9 +169,7 @@ public class FilePathDatabase {
                     database.executeFast("DELETE FROM paths WHERE document_id = " + id + " AND dc_id = " + dc + " AND type = " + type).stepThis().dispose();
                 }
             } catch (SQLiteException e) {
-                if (BuildVars.DEBUG_VERSION) {
-                    throw new RuntimeException(e);
-                }
+                FileLog.e(e);
             }
         });
     }
@@ -195,7 +189,7 @@ public class FilePathDatabase {
                     messageObject.checkMediaExistance(false);
                 }
             } catch (Exception e) {
-                e.printStackTrace();
+                FileLog.e(e);
             }
             syncLatch.countDown();
         });
@@ -203,7 +197,7 @@ public class FilePathDatabase {
         try {
             syncLatch.await();
         } catch (InterruptedException e) {
-            throw new RuntimeException(e);
+            FileLog.e(e);
         }
 
         FileLog.d("checkMediaExistance size=" + messageObjects.size() + " time=" + (System.currentTimeMillis() - time));
