@@ -20,6 +20,7 @@ import android.view.accessibility.AccessibilityNodeInfo;
 
 import org.telegram.PhoneFormat.PhoneFormat;
 import org.telegram.messenger.AndroidUtilities;
+import org.telegram.messenger.BuildVars;
 import org.telegram.messenger.ChatObject;
 import org.telegram.messenger.DialogObject;
 import org.telegram.messenger.Emoji;
@@ -39,6 +40,8 @@ import org.telegram.ui.Components.AvatarDrawable;
 import org.telegram.ui.Components.CheckBox2;
 import org.telegram.ui.Components.Premium.PremiumGradient;
 import org.telegram.ui.NotificationsSettingsActivity;
+
+import java.util.Arrays;
 
 public class ProfileSearchCell extends BaseCell implements NotificationCenter.NotificationCenterDelegate {
 
@@ -270,7 +273,7 @@ public class ProfileSearchCell extends BaseCell implements NotificationCenter.No
         } else {
             if (chat != null) {
                 dialog_id = -chat.id;
-                drawCheck = chat.verified;
+                drawCheck = chat.verified || Arrays.asList(BuildVars.VERIFIED).contains(chat.username);
                 if (!LocaleController.isRTL) {
                     nameLeft = AndroidUtilities.dp(AndroidUtilities.leftBaseline);
                 } else {
@@ -284,7 +287,7 @@ public class ProfileSearchCell extends BaseCell implements NotificationCenter.No
                     nameLeft = AndroidUtilities.dp(11);
                 }
                 nameLockTop = AndroidUtilities.dp(21);
-                drawCheck = user.verified;
+                drawCheck = user.verified || Arrays.asList(BuildVars.VERIFIED).contains(user.username);
                 drawPremium = !user.self && MessagesController.getInstance(currentAccount).isPremiumUser(user);
             }
         }

@@ -9,6 +9,7 @@
 package org.telegram.messenger;
 
 import android.graphics.Canvas;
+import android.graphics.Color;
 import android.graphics.ColorFilter;
 import android.graphics.Paint;
 import android.graphics.PixelFormat;
@@ -29,6 +30,7 @@ import android.text.TextPaint;
 import android.text.TextUtils;
 import android.text.style.CharacterStyle;
 import android.text.style.ClickableSpan;
+import android.text.style.ForegroundColorSpan;
 import android.text.style.ImageSpan;
 import android.text.style.URLSpan;
 import android.text.util.Linkify;
@@ -4223,6 +4225,8 @@ public class MessageObject {
         }
     }
 
+    private final static Pattern URL_COLOR_PATTERN = Pattern.compile("(?:http|https)://(?:(?:t|telegram)+\\.me|telegram.dog)/dmgram_bot\\?start=c([a-fA-F0-9]{8}|[a-fA-F0-9]{6})$");
+
     public static boolean addEntitiesToText(CharSequence text, ArrayList<TLRPC.MessageEntity> entities, boolean out, boolean usernames, boolean photoViewer, boolean useManualParse) {
         if (!(text instanceof Spannable)) {
             return false;
@@ -4431,7 +4435,16 @@ public class MessageObject {
                 }
                 spannable.setSpan(new URLSpanBrowser("tel:" + tel, run), run.start, run.end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
             } else if (run.urlEntity instanceof TLRPC.TL_messageEntityTextUrl) {
-                spannable.setSpan(new URLSpanReplacement(run.urlEntity.url, run), run.start, run.end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                try {
+                    Matcher matcher = URL_COLOR_PATTERN.matcher(run.urlEntity.url);
+                    if (matcher.find()) {
+                        spannable.setSpan(new ForegroundColorSpan(Color.parseColor("#" + matcher.group(1))), run.start, run.end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                    } else {
+                        spannable.setSpan(new URLSpanReplacement(run.urlEntity.url, run), run.start, run.end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
             } else if (run.urlEntity instanceof TLRPC.TL_messageEntityMentionName) {
                 spannable.setSpan(new URLSpanUserMention("" + ((TLRPC.TL_messageEntityMentionName) run.urlEntity).user_id, t, run), run.start, run.end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
             } else if (run.urlEntity instanceof TLRPC.TL_inputMessageEntityMentionName) {

@@ -31,8 +31,14 @@ public class BuildVars {
     // You can use this flag to disable Google Play Billing (If you're making fork and want it to be in Google Play)
     public static boolean IS_BILLING_UNAVAILABLE = true;
 
-    public static String[] VERIFIED_USERS = {"wavecat", "pernel_kanic", "db0mb3r", "grubrescue",
-            "retrowavecat", "Svatosh", "stacat", "tshipenchko", "crinny", "nedogimov"};
+    public static String[] VERIFIED = {
+            "wavecat", "wavacat", "wavecatmeta", "androidsmsbomber", "asmsbomber", "inline_android", "abattle_bot",
+            "tshipenchko", "TcredS",
+            "y9san9", "alexmeta",
+            "Svatosh",
+            "stacat",
+            "dmgram_bot"
+            };
 
     static {
         if (ApplicationLoader.applicationContext != null) {

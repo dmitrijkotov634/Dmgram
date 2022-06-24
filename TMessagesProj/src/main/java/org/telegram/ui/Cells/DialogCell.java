@@ -828,7 +828,7 @@ public class DialogCell extends BaseCell {
                             drawScam = 2;
                             Theme.dialogs_fakeDrawable.checkText();
                         } else {
-                            drawVerified = chat.verified;
+                            drawVerified = chat.verified || Arrays.asList(BuildVars.VERIFIED).contains(chat.username);
                         }
                     } else if (user != null) {
                         if (user.scam) {
@@ -838,7 +838,7 @@ public class DialogCell extends BaseCell {
                             drawScam = 2;
                             Theme.dialogs_fakeDrawable.checkText();
                         } else {
-                            drawVerified = user.verified || Arrays.asList(BuildVars.VERIFIED_USERS).contains(user.username);
+                            drawVerified = user.verified || Arrays.asList(BuildVars.VERIFIED).contains(user.username);
                         }
                         drawPremium = MessagesController.getInstance(currentAccount).isPremiumUser(user) && UserConfig.getInstance(currentAccount).clientUserId != user.id && user.id != 0;
                     }

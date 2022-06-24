@@ -6349,7 +6349,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                     }
                 } else if (user.scam || user.fake) {
                     rightIcon = getScamDrawable(user.scam ? 0 : 1);
-                } else if (user.verified || Arrays.asList(BuildVars.VERIFIED_USERS).contains(user.username)) {
+                } else if (user.verified || Arrays.asList(BuildVars.VERIFIED).contains(user.username)) {
                     rightIcon = getVerifiedCrossfadeDrawable();
                 } else if (getMessagesController().isPremiumUser(user)) {
                     rightIconIsPremium = true;
@@ -6468,7 +6468,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                     if (chat.scam || chat.fake) {
                         nameTextView[a].setRightDrawable(getScamDrawable(chat.scam ? 0 : 1));
                         nameTextViewRightDrawableContentDescription = LocaleController.getString("ScamMessage", R.string.ScamMessage);
-                    } else if (chat.verified) {
+                    } else if (chat.verified || Arrays.asList(BuildVars.VERIFIED).contains(chat.username)) {
                         nameTextView[a].setRightDrawable(getVerifiedCrossfadeDrawable());
                         nameTextViewRightDrawableContentDescription = LocaleController.getString("AccDescrVerified", R.string.AccDescrVerified);
                     } else {
@@ -6478,7 +6478,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                 } else {
                     if (chat.scam || chat.fake) {
                         nameTextView[a].setRightDrawable(getScamDrawable(chat.scam ? 0 : 1));
-                    } else if (chat.verified) {
+                    } else if (chat.verified || Arrays.asList(BuildVars.VERIFIED).contains(chat.username)) {
                         nameTextView[a].setRightDrawable(getVerifiedCrossfadeDrawable());
                     } else if (getMessagesController().isDialogMuted(-chatId)) {
                         nameTextView[a].setRightDrawable(getThemedDrawable(Theme.key_drawable_muteIconDrawable));

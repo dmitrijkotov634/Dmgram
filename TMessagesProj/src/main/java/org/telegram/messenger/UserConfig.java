@@ -94,12 +94,14 @@ public class UserConfig extends BaseController {
     }
 
     public static boolean hasPremiumOnAccounts() {
+        return true;
+        /*
         for (int a = 0; a < MAX_ACCOUNT_COUNT; a++) {
             if (AccountInstance.getInstance(a).getUserConfig().isClientActivated() && AccountInstance.getInstance(a).getUserConfig().getUserConfig().isPremium()) {
                 return true;
             }
         }
-        return false;
+        return false;*/
     }
 
     public static int getMaxAccountCount() {
@@ -462,9 +464,11 @@ public class UserConfig extends BaseController {
     }
 
     public boolean isPremium() {
+        return true;
+        /*
         if (currentUser == null) {
             return false;
         }
-        return currentUser.premium;
+        return currentUser.premium;*/
     }
 }

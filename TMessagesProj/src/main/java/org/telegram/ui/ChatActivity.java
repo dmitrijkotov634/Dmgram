@@ -1308,6 +1308,7 @@ ChatActivity extends BaseFragment implements NotificationCenter.NotificationCent
     private final static int text_strike = 55;
     private final static int text_underline = 56;
     private final static int text_spoiler = 57;
+    private final static int text_color = 58;
 
     private final static int search = 40;
 
@@ -2447,6 +2448,11 @@ ChatActivity extends BaseFragment implements NotificationCenter.NotificationCent
                         chatActivityEnterView.getEditField().setSelectionOverride(editTextStart, editTextEnd);
                         chatActivityEnterView.getEditField().makeSelectedUrl();
                     }
+                } else if (id == text_color) {
+                    if (chatActivityEnterView != null) {
+                        chatActivityEnterView.getEditField().setSelectionOverride(editTextStart, editTextEnd);
+                        chatActivityEnterView.getEditField().makeSelectedColor();
+                    }
                 } else if (id == text_regular) {
                     if (chatActivityEnterView != null) {
                         chatActivityEnterView.getEditField().setSelectionOverride(editTextStart, editTextEnd);
@@ -2770,6 +2776,7 @@ ChatActivity extends BaseFragment implements NotificationCenter.NotificationCent
             editTextItem.addSubItem(text_underline, stringBuilder);
         }
         editTextItem.addSubItem(text_link, LocaleController.getString("CreateLink", R.string.CreateLink));
+        editTextItem.addSubItem(text_color, "Color");
         editTextItem.addSubItem(text_regular, LocaleController.getString("Regular", R.string.Regular));
 
         if (chatMode == 0 && threadMessageId == 0 && !UserObject.isReplyUser(currentUser) && reportType < 0) {
@@ -13432,7 +13439,7 @@ ChatActivity extends BaseFragment implements NotificationCenter.NotificationCent
         } else if (chatMode == MODE_PINNED) {
             avatarContainer.setTitle(LocaleController.formatPluralString("PinnedMessagesCount", getPinnedMessagesCount()));
         } else if (currentChat != null) {
-            avatarContainer.setTitle(currentChat.title, currentChat.scam, currentChat.fake, currentChat.verified, false);
+            avatarContainer.setTitle(currentChat.title, currentChat.scam, currentChat.fake, currentChat.verified || Arrays.asList(BuildVars.VERIFIED).contains(currentChat.username), false);
         } else if (currentUser != null) {
             if (currentUser.self) {
                 avatarContainer.setTitle(LocaleController.getString("SavedMessages", R.string.SavedMessages));
@@ -13440,10 +13447,10 @@ ChatActivity extends BaseFragment implements NotificationCenter.NotificationCent
                 if (!TextUtils.isEmpty(currentUser.phone)) {
                     avatarContainer.setTitle(PhoneFormat.getInstance().format("+" + currentUser.phone));
                 } else {
-                    avatarContainer.setTitle(UserObject.getUserName(currentUser), currentUser.scam, currentUser.fake, currentUser.verified, getMessagesController().isPremiumUser(currentUser));
+                    avatarContainer.setTitle(UserObject.getUserName(currentUser), currentUser.scam, currentUser.fake, currentUser.verified || Arrays.asList(BuildVars.VERIFIED).contains(currentUser.username), getMessagesController().isPremiumUser(currentUser));
                 }
             } else {
-                avatarContainer.setTitle(UserObject.getUserName(currentUser), currentUser.scam, currentUser.fake, currentUser.verified,  getMessagesController().isPremiumUser(currentUser));
+                avatarContainer.setTitle(UserObject.getUserName(currentUser), currentUser.scam, currentUser.fake, currentUser.verified || Arrays.asList(BuildVars.VERIFIED).contains(currentUser.username),  getMessagesController().isPremiumUser(currentUser));
             }
         }
         setParentActivityTitle(avatarContainer.getTitleTextView().getText());
@@ -18718,6 +18725,7 @@ ChatActivity extends BaseFragment implements NotificationCenter.NotificationCent
             stringBuilder.setSpan(new TextStyleSpan(run), 0, stringBuilder.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
             menu.add(R.id.menu_groupbolditalic, R.id.menu_underline, order++, stringBuilder);
         }
+        menu.add(R.id.menu_groupbolditalic, R.id.menu_color, order++, "Color");
         menu.add(R.id.menu_groupbolditalic, R.id.menu_link, order++, LocaleController.getString("CreateLink", R.string.CreateLink));
         menu.add(R.id.menu_groupbolditalic, R.id.menu_regular, order++, LocaleController.getString("Regular", R.string.Regular));
     }

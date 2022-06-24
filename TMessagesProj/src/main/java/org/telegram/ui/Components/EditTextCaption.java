@@ -156,6 +156,67 @@ public class EditTextCaption extends EditTextBoldCursor {
         applyTextStyleToSelection(new TextStyleSpan(run));
     }
 
+    public void makeSelectedColor() {
+        AlertDialog.Builder builder = new AlertDialog.Builder(getContext(), resourcesProvider);
+        builder.setTitle("Color");
+
+        ColorPicker colorPicker = new ColorPicker(getContext().getApplicationContext(), false, new ColorPicker.ColorPickerDelegate() {
+            @Override
+            public void setColor(int color, int num, boolean applyNow) {
+            }
+        }) {
+            @Override
+            protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
+                super.onMeasure(widthMeasureSpec, MeasureSpec.makeMeasureSpec(AndroidUtilities.dp(300), MeasureSpec.EXACTLY));
+            }
+        };
+
+        colorPicker.setType(-1, true, 1, 1, false, 0, false);
+
+        builder.setView(colorPicker);
+
+        final int start;
+        final int end;
+        if (selectionStart >= 0 && selectionEnd >= 0) {
+            start = selectionStart;
+            end = selectionEnd;
+            selectionStart = selectionEnd = -1;
+        } else {
+            start = getSelectionStart();
+            end = getSelectionEnd();
+        }
+
+        builder.setPositiveButton(LocaleController.getString("OK", R.string.OK), (dialogInterface, i) -> {
+            Editable editable = getText();
+            CharacterStyle[] spans = editable.getSpans(start, end, CharacterStyle.class);
+            if (spans != null && spans.length > 0) {
+                for (int a = 0; a < spans.length; a++) {
+                    CharacterStyle oldSpan = spans[a];
+                    int spanStart = editable.getSpanStart(oldSpan);
+                    int spanEnd = editable.getSpanEnd(oldSpan);
+                    editable.removeSpan(oldSpan);
+                    if (spanStart < start) {
+                        editable.setSpan(oldSpan, spanStart, start, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                    }
+                    if (spanEnd > end) {
+                        editable.setSpan(oldSpan, end, spanEnd, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                    }
+                }
+            }
+            try {
+                editable.setSpan(new URLSpanReplacement("https://t.me/dmgram_bot?start=c" + Integer.toHexString(colorPicker.getColor())), start, end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+            } catch (Exception ignore) {
+
+            }
+            if (delegate != null) {
+                delegate.onSpansChanged();
+            }
+        });
+
+        builder.setNegativeButton(LocaleController.getString("Cancel", R.string.Cancel), null);
+        builder.show();
+    }
+
     public void makeSelectedUrl() {
         AlertDialog.Builder builder = new AlertDialog.Builder(getContext(), resourcesProvider);
         builder.setTitle(LocaleController.getString("CreateLink", R.string.CreateLink));
@@ -350,6 +411,9 @@ public class EditTextCaption extends EditTextBoldCursor {
             return true;
         } else if (itemId == R.id.menu_bold) {
             makeSelectedBold();
+            return true;
+        } else if (itemId == R.id.menu_color) {
+            makeSelectedColor();
             return true;
         } else if (itemId == R.id.menu_italic) {
             makeSelectedItalic();
