@@ -8,18 +8,12 @@
 
 package org.telegram.messenger;
 
-import android.graphics.Canvas;
 import android.graphics.Color;
-import android.graphics.ColorFilter;
-import android.graphics.Paint;
-import android.graphics.PixelFormat;
-import android.graphics.Rect;
 import android.graphics.Typeface;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
 import android.net.Uri;
 import android.os.Build;
-import android.os.SystemClock;
 import android.text.Layout;
 import android.text.Spannable;
 import android.text.SpannableString;
@@ -31,15 +25,15 @@ import android.text.TextUtils;
 import android.text.style.CharacterStyle;
 import android.text.style.ClickableSpan;
 import android.text.style.ForegroundColorSpan;
-import android.text.style.ImageSpan;
+import android.text.style.RelativeSizeSpan;
 import android.text.style.URLSpan;
 import android.text.util.Linkify;
 import android.util.Base64;
 import android.view.View;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.collection.LongSparseArray;
+
+import org.dmgram.helpers.FormattingHelper;
 
 import org.telegram.PhoneFormat.PhoneFormat;
 import org.telegram.messenger.browser.Browser;
@@ -50,7 +44,6 @@ import org.telegram.tgnet.TLObject;
 import org.telegram.tgnet.TLRPC;
 import org.telegram.ui.ActionBar.Theme;
 import org.telegram.ui.Cells.ChatMessageCell;
-import org.telegram.ui.Components.RLottieDrawable;
 import org.telegram.ui.Components.TextStyleSpan;
 import org.telegram.ui.Components.TranscribeButton;
 import org.telegram.ui.Components.TypefaceSpan;
@@ -4225,13 +4218,24 @@ public class MessageObject {
         }
     }
 
-    private final static Pattern URL_COLOR_PATTERN = Pattern.compile("(?:http|https)://(?:(?:t|telegram)+\\.me|telegram.dog)/dmgram_bot\\?start=c([a-fA-F0-9]{8}|[a-fA-F0-9]{6})$");
+    private final static Pattern COLOR_PATTERN = Pattern.compile("(?:http|https)://(?:(?:t|telegram)+\\.me|telegram.dog)/dmgram_bot\\?start=c([a-fA-F0-9]{8}|[a-fA-F0-9]{6})$");
+    private final static Pattern HEADER_PATTERN = Pattern.compile("^(#{1,6}) .+$", Pattern.MULTILINE);
 
     public static boolean addEntitiesToText(CharSequence text, ArrayList<TLRPC.MessageEntity> entities, boolean out, boolean usernames, boolean photoViewer, boolean useManualParse) {
         if (!(text instanceof Spannable)) {
             return false;
         }
+
         Spannable spannable = (Spannable) text;
+
+        Matcher headers = HEADER_PATTERN.matcher(text);
+        while (headers.find()) {
+            spannable.setSpan(new RelativeSizeSpan(0f),
+                    headers.start(), headers.start() + headers.group(1).length() + 1,  Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+            spannable.setSpan(new RelativeSizeSpan((6 - headers.group(1).length()) * 0.1f + 1.1f),
+                    headers.start() + headers.group(1).length(), headers.end(),  Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+        }
+
         URLSpan[] spans = spannable.getSpans(0, text.length(), URLSpan.class);
         boolean hasUrls = spans != null && spans.length > 0;
         if (entities.isEmpty()) {
@@ -4309,6 +4313,7 @@ public class MessageObject {
             } else if (entity instanceof TLRPC.TL_messageEntityItalic) {
                 newRun.flags = TextStyleSpan.FLAG_STYLE_ITALIC;
             } else if (entity instanceof TLRPC.TL_messageEntityCode || entity instanceof TLRPC.TL_messageEntityPre) {
+                newRun.urlEntity = entity;
                 newRun.flags = TextStyleSpan.FLAG_STYLE_MONO;
             } else if (entity instanceof TLRPC.TL_messageEntityMentionName) {
                 if (!usernames) {
@@ -4436,7 +4441,7 @@ public class MessageObject {
                 spannable.setSpan(new URLSpanBrowser("tel:" + tel, run), run.start, run.end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
             } else if (run.urlEntity instanceof TLRPC.TL_messageEntityTextUrl) {
                 try {
-                    Matcher matcher = URL_COLOR_PATTERN.matcher(run.urlEntity.url);
+                    Matcher matcher = COLOR_PATTERN.matcher(run.urlEntity.url);
                     if (matcher.find()) {
                         spannable.setSpan(new ForegroundColorSpan(Color.parseColor("#" + matcher.group(1))), run.start, run.end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
                     } else {
@@ -4450,7 +4455,11 @@ public class MessageObject {
             } else if (run.urlEntity instanceof TLRPC.TL_inputMessageEntityMentionName) {
                 spannable.setSpan(new URLSpanUserMention("" + ((TLRPC.TL_inputMessageEntityMentionName) run.urlEntity).user_id.user_id, t, run), run.start, run.end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
             } else if ((run.flags & TextStyleSpan.FLAG_STYLE_MONO) != 0) {
-                spannable.setSpan(new URLSpanMono(spannable, run.start, run.end, t, run), run.start, run.end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                if (FormattingHelper.validate(run.urlEntity)) {
+                    FormattingHelper.apply(spannable, run);
+                } else {
+                    spannable.setSpan(new URLSpanMono(spannable, run.start, run.end, t, run), run.start, run.end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                }
             } else {
                 setRun = true;
                 spannable.setSpan(new TextStyleSpan(run), run.start, run.end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);

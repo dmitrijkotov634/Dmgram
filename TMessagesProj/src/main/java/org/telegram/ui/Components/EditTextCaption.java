@@ -33,8 +33,11 @@ import android.view.ViewGroup;
 import android.view.accessibility.AccessibilityNodeInfo;
 import android.view.inputmethod.EditorInfo;
 import android.widget.FrameLayout;
+import android.widget.LinearLayout;
 
 import androidx.core.view.accessibility.AccessibilityNodeInfoCompat;
+
+import org.dmgram.utils.FormattingSpan;
 
 import org.telegram.messenger.AndroidUtilities;
 import org.telegram.messenger.FileLog;
@@ -43,6 +46,7 @@ import org.telegram.messenger.MediaDataController;
 import org.telegram.messenger.R;
 import org.telegram.ui.ActionBar.AlertDialog;
 import org.telegram.ui.ActionBar.Theme;
+import org.telegram.ui.Cells.CheckBoxCell;
 
 import java.util.List;
 
@@ -160,6 +164,9 @@ public class EditTextCaption extends EditTextBoldCursor {
         AlertDialog.Builder builder = new AlertDialog.Builder(getContext(), resourcesProvider);
         builder.setTitle("Color");
 
+        final LinearLayout linearLayout = new LinearLayout(getContext());
+        linearLayout.setOrientation(LinearLayout.VERTICAL);
+
         ColorPicker colorPicker = new ColorPicker(getContext().getApplicationContext(), false, new ColorPicker.ColorPickerDelegate() {
             @Override
             public void setColor(int color, int num, boolean applyNow) {
@@ -173,7 +180,30 @@ public class EditTextCaption extends EditTextBoldCursor {
 
         colorPicker.setType(-1, true, 1, 1, false, 0, false);
 
-        builder.setView(colorPicker);
+        final CheckBoxCell underline = new CheckBoxCell(getContext(), 4);
+        final CheckBoxCell strike = new CheckBoxCell(getContext(), 4);
+        final CheckBoxCell bold = new CheckBoxCell(getContext(), 4);
+        final CheckBoxCell italic = new CheckBoxCell(getContext(), 4);
+
+        View.OnClickListener listener = view -> ((CheckBoxCell)view).setChecked(!((CheckBoxCell)view).isChecked(), true);
+
+        underline.setOnClickListener(listener);
+        strike.setOnClickListener(listener);
+        bold.setOnClickListener(listener);
+        italic.setOnClickListener(listener);
+
+        underline.setText(LocaleController.getString("Underline", R.string.Underline), "", false, false);
+        strike.setText(LocaleController.getString("Strike", R.string.Strike), "", false, false);
+        bold.setText(LocaleController.getString("Bold", R.string.Bold), "", false, false);
+        italic.setText(LocaleController.getString("Italic", R.string.Italic), "", false, false);
+
+        linearLayout.addView(colorPicker);
+        linearLayout.addView(underline);
+        linearLayout.addView(strike);
+        linearLayout.addView(bold);
+        linearLayout.addView(italic);
+
+        builder.setView(linearLayout);
 
         final int start;
         final int end;
@@ -204,7 +234,22 @@ public class EditTextCaption extends EditTextBoldCursor {
                 }
             }
             try {
-                editable.setSpan(new URLSpanReplacement("https://t.me/dmgram_bot?start=c" + Integer.toHexString(colorPicker.getColor())), start, end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                StringBuilder stringBuilder = new StringBuilder();
+                stringBuilder.append("c=");
+                stringBuilder.append(Integer.toHexString(colorPicker.getColor()));
+                stringBuilder.append(";");
+                if (italic.isChecked() && bold.isChecked())
+                    stringBuilder.append("BI;");
+                else if (italic.isChecked())
+                    stringBuilder.append("I;");
+                else if (bold.isChecked())
+                    stringBuilder.append("B;");
+                if (strike.isChecked())
+                    stringBuilder.append("strike;");
+                if (underline.isChecked())
+                    stringBuilder.append("underline;");
+
+                editable.setSpan(new FormattingSpan(stringBuilder.toString()), start, end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
             } catch (Exception ignore) {
 
             }

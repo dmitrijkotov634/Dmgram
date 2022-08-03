@@ -43,6 +43,8 @@ import androidx.core.content.pm.ShortcutInfoCompat;
 import androidx.core.content.pm.ShortcutManagerCompat;
 import androidx.core.graphics.drawable.IconCompat;
 
+import org.dmgram.utils.FormattingSpan;
+
 import org.telegram.SQLite.SQLiteCursor;
 import org.telegram.SQLite.SQLiteDatabase;
 import org.telegram.SQLite.SQLiteException;
@@ -5248,6 +5250,20 @@ public class MediaDataController extends BaseController {
                     if (style != null) {
                         addStyle(style.flags, entity.offset, entity.offset + entity.length, entities);
                     }
+                }
+            }
+
+            FormattingSpan[] spansFormatting = spannable.getSpans(0, message[0].length(), FormattingSpan.class);
+            if (spansFormatting  != null && spansFormatting .length > 0) {
+                if (entities == null) {
+                    entities = new ArrayList<>();
+                }
+                for (FormattingSpan formattingSpan : spansFormatting) {
+                    TLRPC.TL_messageEntityPre entity = new TLRPC.TL_messageEntityPre();
+                    entity.offset = spannable.getSpanStart(formattingSpan);
+                    entity.length = Math.min(spannable.getSpanEnd(formattingSpan), message[0].length()) - entity.offset;
+                    entity.language = formattingSpan.getString();
+                    entities.add(entity);
                 }
             }
 
