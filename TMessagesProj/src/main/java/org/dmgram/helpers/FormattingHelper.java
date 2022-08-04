@@ -55,13 +55,21 @@ public class FormattingHelper {
         }
     }
 
+
+    private static void applySpan(Spannable spannable, Object o, int start, int end) {
+        Object[] spans = spannable.getSpans(start, end, o.getClass());
+        for (Object span : spans)
+            spannable.removeSpan(span);
+        spannable.setSpan(o, start, end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+    }
+
     static class ColorStyle implements Style {
         @Override
         public void apply(String[] args, Spannable spannable, TextStyleSpan.TextStyleRun run) {
             if (args.length == 1)
                 return;
 
-            spannable.setSpan(new ForegroundColorSpan(Color.parseColor("#" + args[1])), run.start, run.end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+            applySpan(spannable, new ForegroundColorSpan(Color.parseColor("#" + args[1])), run.start, run.end);
         }
     }
 
@@ -71,7 +79,7 @@ public class FormattingHelper {
             if (args.length == 1)
                 return;
 
-            spannable.setSpan(new BackgroundColorSpan(Color.parseColor("#" + args[1])), run.start, run.end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+            applySpan(spannable, new BackgroundColorSpan(Color.parseColor("#" + args[1])), run.start, run.end);
         }
     }
 
@@ -83,11 +91,12 @@ public class FormattingHelper {
 
             float value = Float.parseFloat(args[1]);
 
-            if (value > 2.5 || value < 0.1) {
-                return;
-            }
+            if (value > 2)
+                value = 2;
+            else if (value < 0.5f)
+                value = 0.5f;
 
-            spannable.setSpan(new RelativeSizeSpan(value), run.start, run.end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+            applySpan(spannable, new RelativeSizeSpan(value), run.start, run.end);
         }
     }
 
@@ -99,60 +108,61 @@ public class FormattingHelper {
 
             float value = Float.parseFloat(args[1]);
 
-            if (value > 2 || value < 0) {
-                return;
-            }
+            if (value > 2)
+                value = 2;
+            else if (value < 0.1f)
+                value = 0.1f;
 
-            spannable.setSpan(new ScaleXSpan(value), run.start, run.end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+            applySpan(spannable, new ScaleXSpan(value), run.start, run.end);
         }
     }
 
     static class SuperscriptStyle implements Style {
         @Override
         public void apply(String[] args, Spannable spannable, TextStyleSpan.TextStyleRun run) {
-            spannable.setSpan(new SuperscriptSpan(), run.start, run.end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+            applySpan(spannable, new SuperscriptSpan(), run.start, run.end);
         }
     }
 
     static class SubscriptStyle implements Style {
         @Override
         public void apply(String[] args, Spannable spannable, TextStyleSpan.TextStyleRun run) {
-            spannable.setSpan(new SubscriptSpan(), run.start, run.end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+            applySpan(spannable, new SubscriptSpan(), run.start, run.end);
         }
     }
 
     static class ItalicStyle implements Style {
         @Override
         public void apply(String[] args, Spannable spannable, TextStyleSpan.TextStyleRun run) {
-            spannable.setSpan(new StyleSpan(Typeface.ITALIC), run.start, run.end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+            applySpan(spannable, new StyleSpan(Typeface.ITALIC), run.start, run.end);
         }
     }
 
     static class BoldStyle implements Style {
         @Override
         public void apply(String[] args, Spannable spannable, TextStyleSpan.TextStyleRun run) {
-            spannable.setSpan(new StyleSpan(Typeface.BOLD), run.start, run.end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+            applySpan(spannable, new StyleSpan(Typeface.BOLD), run.start, run.end);
         }
     }
 
     static class BoldItalicStyle implements Style {
         @Override
         public void apply(String[] args, Spannable spannable, TextStyleSpan.TextStyleRun run) {
-            spannable.setSpan(new StyleSpan(Typeface.BOLD_ITALIC), run.start, run.end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+            applySpan(spannable, new StyleSpan(Typeface.BOLD_ITALIC), run.start, run.end);
         }
     }
 
     static class UnderlineStyle implements Style {
         @Override
         public void apply(String[] args, Spannable spannable, TextStyleSpan.TextStyleRun run) {
-            spannable.setSpan(new UnderlineSpan(), run.start, run.end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+            applySpan(spannable, new UnderlineSpan(), run.start, run.end);
         }
     }
 
     static class StrikethroughStyle implements Style {
         @Override
         public void apply(String[] args, Spannable spannable, TextStyleSpan.TextStyleRun run) {
-            spannable.setSpan(new StrikethroughSpan(), run.start, run.end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+            applySpan(spannable, new StrikethroughSpan(), run.start, run.end);
         }
     }
 
