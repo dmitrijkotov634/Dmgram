@@ -1,4 +1,4 @@
-apply plugin: 'com.android.application'
+apply plugin: 'com.android.library'
 
 repositories {
     mavenCentral()
@@ -39,7 +39,6 @@ dependencies {
     implementation 'com.stripe:stripe-android:2.0.2'
     implementation 'com.google.mlkit:language-id:16.1.1'
     implementation 'com.android.billingclient:billing:5.0.0'
-    implementation files('libs/libgsaverification-client.aar')
 
     implementation 'com.github.KieronQuinn:MonetCompat:0.4.1'
     implementation 'androidx.interpolator:interpolator:1.0.0'
@@ -93,12 +92,10 @@ android {
         debug {
             debuggable true
             jniDebuggable true
-            signingConfig signingConfigs.debug
-            applicationIdSuffix ".beta"
             minifyEnabled false
             shrinkResources false
             multiDexEnabled true
-            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), '../TMessagesProj/proguard-rules.pro'
             ndk.debugSymbolLevel = 'FULL'
         }
 
@@ -109,7 +106,7 @@ android {
             minifyEnabled true
             shrinkResources true
             multiDexEnabled true
-            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), '../TMessagesProj/proguard-rules.pro'
             ndk.debugSymbolLevel = 'FULL'
         }
     }
@@ -124,7 +121,7 @@ android {
 
     flavorDimensions "minApi"
 
-    defaultConfig.versionCode = 2721
+    defaultConfig.versionCode = 2751
 
     applicationVariants.all { variant ->
         variant.outputs.all { output ->
@@ -148,7 +145,7 @@ android {
     defaultConfig {
         minSdkVersion 16
         targetSdkVersion 30
-        versionName "8.8.5"
+        versionName "8.9.0"
 
         vectorDrawables.generatedDensities = ['mdpi', 'hdpi', 'xhdpi', 'xxhdpi']
 
