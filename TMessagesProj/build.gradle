@@ -48,10 +48,8 @@ dependencies {
 
 android {
     compileSdkVersion 31
-    buildToolsVersion '30.0.0'
-    ndkVersion '21.4.7075529'
-
-    defaultConfig.applicationId = "org.dmgram.messenger"
+    buildToolsVersion '31.0.0'
+    ndkVersion "21.4.7075529"
 
     sourceSets.main.jniLibs.srcDirs = ['./jni/']
 
@@ -61,6 +59,16 @@ android {
         }
     }
 
+    lintOptions {
+        disable 'MissingTranslation'
+        disable 'ExtraTranslation'
+        disable 'BlockedPrivateApi'
+    }
+
+    dexOptions {
+        jumboMode = true
+    }
+
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_1_8
         targetCompatibility JavaVersion.VERSION_1_8
@@ -68,23 +76,22 @@ android {
         coreLibraryDesugaringEnabled true
     }
 
-    signingConfigs {
-        def propsFile = rootProject.file('keystore.properties')
-        def props = new Properties()
-        props.load(new FileInputStream(propsFile))
+    defaultConfig.versionCode = Integer.parseInt(APP_VERSION_CODE)
 
-        debug {
-            storeFile file("config/release.keystore")
-            storePassword props['RELEASE_STORE_PASSWORD']
-            keyAlias props['RELEASE_KEY_ALIAS']
-            keyPassword props['RELEASE_KEY_PASSWORD']
-        }
+    defaultConfig {
+        minSdkVersion 16
+        targetSdkVersion 30
+        versionName "8.9.0"
 
-        release {
-            storeFile file("config/release.keystore")
-            storePassword props['RELEASE_STORE_PASSWORD']
-            keyAlias props['RELEASE_KEY_ALIAS']
-            keyPassword props['RELEASE_KEY_PASSWORD']
+        vectorDrawables.generatedDensities = ['mdpi', 'hdpi', 'xhdpi', 'xxhdpi']
+
+        multiDexEnabled true
+
+        externalNativeBuild {
+            cmake {
+                version '3.10.2'
+                arguments '-DANDROID_STL=c++_static', '-DANDROID_PLATFORM=android-16', "-j=16"
+            }
         }
     }
 
@@ -99,61 +106,32 @@ android {
             ndk.debugSymbolLevel = 'FULL'
         }
 
-        release {
+        HA {
             debuggable false
             jniDebuggable false
-            signingConfig signingConfigs.release
             minifyEnabled true
-            shrinkResources true
             multiDexEnabled true
             proguardFiles getDefaultProguardFile('proguard-android.txt'), '../TMessagesProj/proguard-rules.pro'
             ndk.debugSymbolLevel = 'FULL'
         }
-    }
 
-    sourceSets.debug {
-        manifest.srcFile 'config/debug/AndroidManifest.xml'
-    }
-
-    sourceSets.release {
-        manifest.srcFile 'config/release/AndroidManifest.xml'
-    }
-
-    flavorDimensions "minApi"
-
-    defaultConfig.versionCode = 2751
-
-    applicationVariants.all { variant ->
-        variant.outputs.all { output ->
-            def abi = output.getFilter('ABI')
-            if (abi == null) abi = 'universal'
-            outputFileName = "Dmgram-${defaultConfig.versionName}-${defaultConfig.versionCode}-${abi}.apk"
-            output.versionCodeOverride = defaultConfig.versionCode * 10 + 9
+        standalone {
+            debuggable false
+            jniDebuggable false
+            minifyEnabled true
+            multiDexEnabled true
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), '../TMessagesProj/proguard-rules.pro'
+            ndk.debugSymbolLevel = 'FULL'
         }
-    }
 
-    splits.abi {
-        enable true
-        universalApk true
-    }
-
-    dependenciesInfo.includeInApk false
-    lint {
-        disable 'MissingTranslation', 'ExtraTranslation', 'BlockedPrivateApi'
-    }
-
-    defaultConfig {
-        minSdkVersion 16
-        targetSdkVersion 30
-        versionName "8.9.0"
-
-        vectorDrawables.generatedDensities = ['mdpi', 'hdpi', 'xhdpi', 'xxhdpi']
-
-        externalNativeBuild {
-            cmake {
-                version '3.10.2'
-                arguments '-DANDROID_STL=c++_static', '-DANDROID_PLATFORM=android-16', "-j=16"
-            }
+        release {
+            debuggable false
+            jniDebuggable false
+            minifyEnabled true
+            shrinkResources false
+            multiDexEnabled true
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), '../TMessagesProj/proguard-rules.pro'
+            ndk.debugSymbolLevel = 'FULL'
         }
     }
 }
