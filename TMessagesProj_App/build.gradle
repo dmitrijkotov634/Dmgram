@@ -3,6 +3,7 @@ apply plugin: 'com.android.application'
 repositories {
     mavenCentral()
     google()
+    maven { url 'https://jitpack.io' }
 }
 
 configurations {
@@ -47,18 +48,22 @@ android {
     }
 
     signingConfigs {
+        def propsFile = rootProject.file('keystore.properties')
+        def props = new Properties()
+        props.load(new FileInputStream(propsFile))
+
         debug {
-            storeFile file("../TMessagesProj/config/release.keystore")
-            storePassword RELEASE_STORE_PASSWORD
-            keyAlias RELEASE_KEY_ALIAS
-            keyPassword RELEASE_KEY_PASSWORD
+            storeFile file("config/release.keystore")
+            storePassword props['RELEASE_STORE_PASSWORD']
+            keyAlias props['RELEASE_KEY_ALIAS']
+            keyPassword props['RELEASE_KEY_PASSWORD']
         }
 
         release {
-            storeFile file("../TMessagesProj/config/release.keystore")
-            storePassword RELEASE_STORE_PASSWORD
-            keyAlias RELEASE_KEY_ALIAS
-            keyPassword RELEASE_KEY_PASSWORD
+            storeFile file("config/release.keystore")
+            storePassword props['RELEASE_STORE_PASSWORD']
+            keyAlias props['RELEASE_KEY_ALIAS']
+            keyPassword props['RELEASE_KEY_PASSWORD']
         }
     }
 

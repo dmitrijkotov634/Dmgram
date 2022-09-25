@@ -41,8 +41,8 @@ import android.widget.LinearLayout;
 
 import androidx.core.view.accessibility.AccessibilityNodeInfoCompat;
 
+import org.dmgram.EmojiFonts;
 import org.dmgram.utils.FormattingSpan;
-
 import org.telegram.messenger.AndroidUtilities;
 import org.telegram.messenger.Emoji;
 import org.telegram.messenger.FileLog;
@@ -167,6 +167,73 @@ public class EditTextCaption extends EditTextBoldCursor {
         applyTextStyleToSelection(new TextStyleSpan(run));
     }
 
+    public void makeSelectedEmojiFont() {
+        AlertDialog.Builder builder = new AlertDialog.Builder(getContext(), resourcesProvider);
+        builder.setTitle("EmojiFont");
+
+        final int start;
+        final int end;
+        if (selectionStart >= 0 && selectionEnd >= 0) {
+            start = selectionStart;
+            end = selectionEnd;
+            selectionStart = selectionEnd = -1;
+        } else {
+            start = getSelectionStart();
+            end = getSelectionEnd();
+        }
+
+        builder.setItems(EmojiFonts.emojiFontsNames, (dialog, which) -> {
+            Editable editable = getText();
+            CharacterStyle[] spans = editable.getSpans(start, end, CharacterStyle.class);
+            if (spans != null && spans.length > 0) {
+                for (int a = 0; a < spans.length; a++) {
+                    CharacterStyle oldSpan = spans[a];
+                    int spanStart = editable.getSpanStart(oldSpan);
+                    int spanEnd = editable.getSpanEnd(oldSpan);
+                    editable.removeSpan(oldSpan);
+                    if (spanStart < start) {
+                        editable.setSpan(oldSpan, spanStart, start, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                    }
+                    if (spanEnd > end) {
+                        editable.setSpan(oldSpan, end, spanEnd, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                    }
+                }
+            }
+
+            EmojiFonts.EmojiFont emojiFont = EmojiFonts.emojiFonts[which];
+
+            String text = editable.toString();
+
+            if (emojiFont.getPrepareFunction() != null)
+                text = emojiFont.getPrepareFunction().apply(text);
+
+            char[] symbols = text.toCharArray();
+
+            int index = start;
+
+            for (int j = start; j < end; j++) {
+                int charAt = emojiFont.getMapping().indexOf(symbols[j]);
+
+                if (charAt == -1) {
+                    index++;
+                    continue;
+                }
+
+                editable.replace(index, index + 1, "\uD83D\uDE00");
+                editable.setSpan(new AnimatedEmojiSpan(emojiFont.getEmojis()[charAt], getPaint().getFontMetricsInt()), index, index + 2, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+
+                index = index + 2;
+            }
+
+            if (delegate != null) {
+                delegate.onSpansChanged();
+            }
+        });
+
+        builder.setNegativeButton(LocaleController.getString("Cancel", R.string.Cancel), null);
+        builder.show();
+    }
+
     public void makeSelectedColor() {
         AlertDialog.Builder builder = new AlertDialog.Builder(getContext(), resourcesProvider);
         builder.setTitle("Color");
@@ -192,7 +259,7 @@ public class EditTextCaption extends EditTextBoldCursor {
         final CheckBoxCell bold = new CheckBoxCell(getContext(), 4);
         final CheckBoxCell italic = new CheckBoxCell(getContext(), 4);
 
-        View.OnClickListener listener = view -> ((CheckBoxCell)view).setChecked(!((CheckBoxCell)view).isChecked(), true);
+        View.OnClickListener listener = view -> ((CheckBoxCell) view).setChecked(!((CheckBoxCell) view).isChecked(), true);
 
         underline.setOnClickListener(listener);
         strike.setOnClickListener(listener);
@@ -476,6 +543,9 @@ public class EditTextCaption extends EditTextBoldCursor {
         } else if (itemId == R.id.menu_bold) {
             makeSelectedBold();
             return true;
+        } else if (itemId == R.id.menu_emojifont) {
+            makeSelectedEmojiFont();
+            return true;
         } else if (itemId == R.id.menu_color) {
             makeSelectedColor();
             return true;
@@ -650,7 +720,7 @@ public class EditTextCaption extends EditTextBoldCursor {
                         }
                     }
                     int start = Math.max(0, getSelectionStart());
-                    int end   = Math.min(getText().length(), getSelectionEnd());
+                    int end = Math.min(getText().length(), getSelectionEnd());
                     setText(getText().replace(start, end, pasted));
                     setSelection(start + pasted.length(), start + pasted.length());
                     return true;

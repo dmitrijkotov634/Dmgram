@@ -4,6 +4,8 @@
     package="org.telegram.messenger.huawei"
     android:installLocation="auto">
 
+    <uses-sdk tools:overrideLibrary="com.kieronquinn.monetcompat"/>
+
     <uses-permission android:name="com.huawei.appmarket.service.commondata.permission.GET_COMMON_DATA"/>
 
     <queries>

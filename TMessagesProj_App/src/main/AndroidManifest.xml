@@ -4,6 +4,8 @@
     package="org.telegram.messenger.regular"
     android:installLocation="auto">
 
+    <uses-sdk tools:overrideLibrary="com.kieronquinn.monetcompat"/>
+
     <application android:name="org.telegram.messenger.ApplicationLoaderImpl" tools:replace="name">
         <service android:name="org.telegram.messenger.GoogleVoiceClientService"/>
         <activity

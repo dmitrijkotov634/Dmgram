@@ -6659,7 +6659,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                 } else if (a == 1) {
                     if (user.scam || user.fake) {
                         rightIcon = getScamDrawable(user.scam ? 0 : 1);
-                    } else if (user.verified || || Arrays.asList(BuildVars.VERIFIED).contains(user.username)) {
+                    } else if (user.verified || Arrays.asList(BuildVars.VERIFIED).contains(user.username)) {
                         rightIcon = getVerifiedCrossfadeDrawable();
                     } else if (getMessagesController().isPremiumUser(user)) {
                         rightIconIsStatus = user.emoji_status instanceof TLRPC.TL_emojiStatus || user.emoji_status instanceof TLRPC.TL_emojiStatusUntil && ((TLRPC.TL_emojiStatusUntil) user.emoji_status).until > (int) (System.currentTimeMillis() / 1000);
@@ -6836,7 +6836,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                 } else {
                     if (chat.scam || chat.fake) {
                         nameTextView[a].setRightDrawable(getScamDrawable(chat.scam ? 0 : 1));
-                    } else if (chat.verified || || Arrays.asList(BuildVars.VERIFIED).contains(chat.username)) {
+                    } else if (chat.verified || Arrays.asList(BuildVars.VERIFIED).contains(chat.username)) {
                         nameTextView[a].setRightDrawable(getVerifiedCrossfadeDrawable());
                     } else if (getMessagesController().isDialogMuted(-chatId)) {
                         nameTextView[a].setRightDrawable(getThemedDrawable(Theme.key_drawable_muteIconDrawable));

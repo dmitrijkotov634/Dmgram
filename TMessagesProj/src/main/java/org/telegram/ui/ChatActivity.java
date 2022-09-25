@@ -1317,6 +1317,7 @@ public class ChatActivity extends BaseFragment implements NotificationCenter.Not
     private final static int text_underline = 56;
     private final static int text_spoiler = 57;
     private final static int text_color = 58;
+    private final static int text_emojifont = 59;
 
     private final static int search = 40;
 
@@ -2463,6 +2464,11 @@ public class ChatActivity extends BaseFragment implements NotificationCenter.Not
                         chatActivityEnterView.getEditField().setSelectionOverride(editTextStart, editTextEnd);
                         chatActivityEnterView.getEditField().makeSelectedColor();
                     }
+                } else if (id == text_emojifont) {
+                    if (chatActivityEnterView != null) {
+                        chatActivityEnterView.getEditField().setSelectionOverride(editTextStart, editTextEnd);
+                        chatActivityEnterView.getEditField().makeSelectedEmojiFont();
+                    }
                 } else if (id == text_regular) {
                     if (chatActivityEnterView != null) {
                         chatActivityEnterView.getEditField().setSelectionOverride(editTextStart, editTextEnd);
@@ -2787,6 +2793,7 @@ public class ChatActivity extends BaseFragment implements NotificationCenter.Not
         }
         editTextItem.addSubItem(text_link, LocaleController.getString("CreateLink", R.string.CreateLink));
         editTextItem.addSubItem(text_color, "Color");
+        editTextItem.addSubItem(text_emojifont, "EmojiFont");
         editTextItem.addSubItem(text_regular, LocaleController.getString("Regular", R.string.Regular));
 
         if (chatMode == 0 && threadMessageId == 0 && !UserObject.isReplyUser(currentUser) && reportType < 0) {
@@ -18863,6 +18870,7 @@ public class ChatActivity extends BaseFragment implements NotificationCenter.Not
             menu.add(R.id.menu_groupbolditalic, R.id.menu_underline, order++, stringBuilder);
         }
         menu.add(R.id.menu_groupbolditalic, R.id.menu_color, order++, "Color");
+        menu.add(R.id.menu_groupbolditalic, R.id.menu_emojifont, order++, "EmojiFont");
         menu.add(R.id.menu_groupbolditalic, R.id.menu_link, order++, LocaleController.getString("CreateLink", R.string.CreateLink));
         menu.add(R.id.menu_groupbolditalic, R.id.menu_regular, order++, LocaleController.getString("Regular", R.string.Regular));
     }

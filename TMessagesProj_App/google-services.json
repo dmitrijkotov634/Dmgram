@@ -1,33 +1,33 @@
 {
   "project_info": {
-    "project_number": "262296439479",
-    "project_id": "dmgram-e5d97",
-    "storage_bucket": "dmgram-e5d97.appspot.com"
+    "project_number": "727549469351",
+    "project_id": "dmgram-f5b6a",
+    "storage_bucket": "dmgram-f5b6a.appspot.com"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:262296439479:android:b10fc078826bb8cfb7db32",
+        "mobilesdk_app_id": "1:727549469351:android:19847274fef0fad65b3182",
         "android_client_info": {
           "package_name": "org.dmgram.messenger"
         }
       },
       "oauth_client": [
         {
-          "client_id": "262296439479-dto1av9794nf6uduuqiem38t42d1j78r.apps.googleusercontent.com",
+          "client_id": "727549469351-lg0ueln8cvkmnl61mo683cidndbft5lq.apps.googleusercontent.com",
           "client_type": 3
         }
       ],
       "api_key": [
         {
-          "current_key": "AIzaSyDjaDaJntDp0RSbELY_lbyjUISnkl7p0E8"
+          "current_key": "AIzaSyAQXN0g1zLQ_7GNkXCZVmQWHSgswbHfT5g"
         }
       ],
       "services": {
         "appinvite_service": {
           "other_platform_oauth_client": [
             {
-              "client_id": "262296439479-dto1av9794nf6uduuqiem38t42d1j78r.apps.googleusercontent.com",
+              "client_id": "727549469351-lg0ueln8cvkmnl61mo683cidndbft5lq.apps.googleusercontent.com",
               "client_type": 3
             }
           ]

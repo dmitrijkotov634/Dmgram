@@ -75,12 +75,12 @@
 	"configuration_version":"3.0",
 	"appInfos":[
 		{
-			"package_name":"org.telegram.messenger",
+			"package_name":"org.dmgram.messenger",
 			"client":{
 				"app_id":"101184875"
 			},
 			"app_info":{
-				"package_name":"org.telegram.messenger",
+				"package_name":"org.dmgram.messenger",
 				"app_id":"101184875"
 			},
 			"oauth_client":{
