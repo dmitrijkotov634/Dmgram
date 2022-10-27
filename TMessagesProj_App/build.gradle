@@ -22,6 +22,17 @@ dependencies {
     implementation files('../TMessagesProj/libs/libgsaverification-client.aar')
 }
 
+def getProps(String propName) {
+    def propsFile = rootProject.file('local.properties')
+    if (propsFile.exists()) {
+        def props = new Properties()
+        props.load(new FileInputStream(propsFile))
+        return props[propName]
+    } else {
+        return ""
+    }
+}
+
 android {
     compileSdkVersion 31
     buildToolsVersion '31.0.0'
@@ -80,17 +91,6 @@ android {
             ndk.debugSymbolLevel = 'FULL'
         }
 
-        HA {
-            debuggable false
-            jniDebuggable false
-            signingConfig signingConfigs.debug
-            applicationIdSuffix ".beta"
-            minifyEnabled true
-            multiDexEnabled true
-            proguardFiles getDefaultProguardFile('proguard-android.txt'), '../TMessagesProj/proguard-rules.pro'
-            ndk.debugSymbolLevel = 'FULL'
-        }
-
         standalone {
             debuggable false
             jniDebuggable false
@@ -115,10 +115,6 @@ android {
     }
 
     sourceSets.debug {
-        manifest.srcFile '../TMessagesProj/config/debug/AndroidManifest.xml'
-    }
-
-    sourceSets.HA {
         manifest.srcFile '../TMessagesProj/config/debug/AndroidManifest.xml'
     }
 
