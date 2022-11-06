@@ -22,6 +22,7 @@ import java.math.BigInteger;
 import java.nio.ByteBuffer;
 import java.security.MessageDigest;
 import java.security.SecureRandom;
+import java.util.HashMap;
 import java.util.Random;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -450,5 +451,13 @@ public class Utilities {
 
     public static interface Callback<T> {
         public void run(T arg);
+    }
+
+    public static <Key, Value> Value getOrDefault(HashMap<Key, Value> map, Key key, Value defaultValue) {
+        Value v = map.get(key);
+        if (v == null) {
+            return defaultValue;
+        }
+        return v;
     }
 }
