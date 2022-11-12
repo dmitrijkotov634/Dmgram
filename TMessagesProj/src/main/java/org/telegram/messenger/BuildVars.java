@@ -24,8 +24,8 @@ public class BuildVars {
     public static boolean USE_CLOUD_STRINGS = true;
     public static boolean CHECK_UPDATES = true;
     public static boolean NO_SCOPED_STORAGE = Build.VERSION.SDK_INT <= 29;
-    public static int BUILD_VERSION = 2902;
-    public static String BUILD_VERSION_STRING = "9.1.2";
+    public static int BUILD_VERSION = 2917;
+    public static String BUILD_VERSION_STRING = "9.1.3";
     public static int APP_ID = 1890553;
     public static String APP_HASH = "c6f46b5330f5953e5201c3185337ed73";
 
