@@ -1,11 +1,8 @@
 package org.dmgram;
 
-import java.util.Locale;
 import java.util.function.Function;
 
 public class EmojiFonts {
-
-    static final Function<String, String> toLowerCase = s -> s.toLowerCase(Locale.ROOT);
 
     public static String[] emojiFontsNames = {
             "Wide Alphabet",
@@ -15,7 +12,8 @@ public class EmojiFonts {
             "Meow meow",
             "Демотиватор",
             "Super Mario 64",
-            "Dvach"
+            "Dvach",
+            "ABC Emoji"
     };
 
     public static EmojiFont[] emojiFonts = {
@@ -47,7 +45,7 @@ public class EmojiFonts {
                     6035197347514813437L,
                     6034924904854326790L},
                     "abcdefghijklmnopqrstuvwxyz",
-                    toLowerCase),
+                    String::toLowerCase),
 
             new EmojiFont(new long[]{
                     5456128055414103034L,
@@ -84,7 +82,7 @@ public class EmojiFonts {
                     5454207307384626821L,
                     5454275588774699252L},
                     "абвгдеёжзийклмнопрстуфхцчшщъыьэюя",
-                    toLowerCase),
+                    String::toLowerCase),
 
             new EmojiFont(new long[]{6032902164236471239L,
                     6030348458286648381L,
@@ -199,7 +197,7 @@ public class EmojiFonts {
                     6035012870079515502L,
                     6035067257250384690L},
                     "0123456789abcdefghijklmnopqrstuvwxyz",
-                    toLowerCase),
+                    String::toLowerCase),
 
             new EmojiFont(new long[]{5474287615228256282L,
                     5474646116148452705L,
@@ -240,7 +238,7 @@ public class EmojiFonts {
                     5472274757330148606L,
                     5472356554982300848L},
                     "abcdefghijklmnopqrstuvwxyz1234567890!?",
-                    toLowerCase),
+                    String::toLowerCase),
 
             new EmojiFont(new long[]{5463015275991408125L,
                     5463131343187613153L,
@@ -279,7 +277,7 @@ public class EmojiFonts {
                     5460710171338613491L,
                     5462952535109147512L},
                     "абвгдеёжзийклмнорпстуфхцчшщъыьэюя!?.",
-                    toLowerCase),
+                    String::toLowerCase),
 
             new EmojiFont(new long[]{6034987997923904624L,
                     6032809624871112000L,
@@ -321,7 +319,7 @@ public class EmojiFonts {
                     6032915671908616972L,
                     6035209691250823276L},
                     "0123456789abcdefghijklmnopqrstuvwxyz\"'?",
-                    toLowerCase),
+                    String::toLowerCase),
 
             new EmojiFont(new long[]{
                     5458467777503305430L,
@@ -480,6 +478,52 @@ public class EmojiFonts {
                     "АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯабвгдеёжзийклмнопрстуфхцчшщъыьэюя0123456789!?.,#:;(){}[]<>/\\*+-=%@_—ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz",
                     null),
 
+            new EmojiFont(new long[]{
+                    5226734466315067436L,
+                    5330453760395191684L,
+                    5330523098347218561L,
+                    5361630910816984823L,
+                    5332587336939084375L,
+                    5330369145244491360L,
+                    5361861335812416268L,
+                    5330133162561380231L,
+                    5381808177547321132L,
+                    5330383228442258084L,
+                    5330026574357996347L,
+                    5332396623211274002L,
+                    5332321341024508571L,
+                    5359736027080565026L,
+                    5361583176550457135L,
+                    5361909160273255840L,
+                    5361948540828393629L,
+                    5332514996804918116L,
+                    5332807088940785741L,
+                    5332558333024934589L,
+                    5330069773139059849L,
+                    5381985121609982619L,
+                    5332308237079288987L,
+                    5332575697577714724L,
+                    5332648110726323166L,
+                    5330309934825351007L,
+                    5391104552655134642L,
+                    5382322671679708881L,
+                    5381990043642502553L,
+                    5381879959335738545L,
+                    5382054253403577563L,
+                    5391197405553107640L,
+                    5390966190283694453L,
+                    5382132232829804982L,
+                    5391038994274329680L,
+                    5391234698754138414L,
+                    5382259076098957171L,
+                    5382187118216879236L,
+                    5382261056078881010L,
+                    5388956351747596880L,
+                    5390854796011906616L,
+                    5389088263078158728L,
+                    5390875094027344872L},
+                    "abcdefghijklmnopqrstuvwxyz0123456789!?-'#%$",
+                    String::toLowerCase),
     };
 
     public static class EmojiFont {

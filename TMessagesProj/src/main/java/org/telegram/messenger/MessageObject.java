@@ -8,6 +8,7 @@
 
 package org.telegram.messenger;
 
+import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Typeface;
 import android.graphics.drawable.BitmapDrawable;
